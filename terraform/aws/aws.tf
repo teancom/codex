@@ -190,6 +190,33 @@ output "aws.network.global-infra-3.subnet" {
   value = "${aws_subnet.global-infra-3.id}"
 }
 
+resource "aws_subnet" "global-openvpn-1" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "${var.network}.4.0/25"
+  availability_zone = "${var.aws_region}${var.aws_az1}"
+  tags { Name = "${var.aws_vpc_name}-global-openvpn-1" }
+}
+resource "aws_route_table_association" "global-openvpn-1" {
+  subnet_id      = "${aws_subnet.global-openvpn-1.id}"
+  route_table_id = "${aws.route_table.external.id}"
+}
+output "aws.network.global-openvpn-1" {
+  value = "${aws_subnet.global-openvpn-1.id}"
+}
+resource "aws_subnet" "global-openvpn-2" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "${var.network}.4.128/25"
+  availability_zone = "${var.aws_region}${var.aws_az2}"
+  tags { Name = "${var.aws_vpc_name}-global-openvpn-2" }
+}
+resource "aws_route_table_association" "global-openvpn-2" {
+  subnet_id      = "${aws_subnet.global-openvpn-2.id}"
+  route_table_id = "${aws.route_table.external.id}"
+}
+output "aws.network.global-openvpn-2" {
+  value = "${aws_subnet.global-openvpn-2.id}"
+}
+
 
 ###############################################################
 # DEV-INFRA - Development Site Infrastructure
