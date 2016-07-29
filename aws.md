@@ -1792,24 +1792,7 @@ make: *** [deploy] Error 3
 
 Looks like we only have a handful of parameters to update, all related to networking, so lets fill out our `networking.yml`,
 after consulting the [Network Plan][netplan] to find our global infrastructure network and the AWS console to find our subnet
-ID:
-
-```
-$ cat networking.yml
----
-meta:
-  net:
-    subnet: subnet-xxxxx # <--- your subnet ID here
-    security_groups: [wide-open]
-    range: 10.4.1.0/24
-    gateway: 10.4.1.1
-    dns: [10.4.0.2]
-  aws:
-    azs:
-      z1: us-west-2a
-```
-
-Since there are a bunch of other deployments on the infrastructure network, we should take care
+ID. Additionally, since there are a bunch of other deployments on the infrastructure network, we should take care
 to reserve the correct static + reserved IPs, so that we don't conflict with other deployments. Fortunately
 that data can be referenced in the [Global Infrastructure IP Allocation section][infra-ips] of the Network Plan:
 
@@ -1818,7 +1801,7 @@ $ cat networking.yml
 ---
 meta:
   net:
-    subnet: subnet-8a186dee
+    subnet: subnet-xxxxx # <--- your subnet ID here
     security_groups: [wide-open]
     range: 10.4.1.0/24
     gateway: 10.4.1.1
