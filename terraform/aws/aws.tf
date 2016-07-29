@@ -198,7 +198,7 @@ resource "aws_subnet" "global-openvpn-1" {
 }
 resource "aws_route_table_association" "global-openvpn-1" {
   subnet_id      = "${aws_subnet.global-openvpn-1.id}"
-  route_table_id = "${aws.route_table.external.id}"
+  route_table_id = "${aws_route_table.external.id}"
 }
 output "aws.network.global-openvpn-1" {
   value = "${aws_subnet.global-openvpn-1.id}"
@@ -211,7 +211,7 @@ resource "aws_subnet" "global-openvpn-2" {
 }
 resource "aws_route_table_association" "global-openvpn-2" {
   subnet_id      = "${aws_subnet.global-openvpn-2.id}"
-  route_table_id = "${aws.route_table.external.id}"
+  route_table_id = "${aws_route_table.external.id}"
 }
 output "aws.network.global-openvpn-2" {
   value = "${aws_subnet.global-openvpn-2.id}"
@@ -1196,6 +1196,20 @@ resource "aws_security_group" "wide-open" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "openvpn" {
+  name = "openvpn"
+  description = "Allow only 443 in"
+  vpc_id = "${aws_vpc.default.id}"
+  tags { Name = "${var.aws_vpc_name}-openvpn" }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
