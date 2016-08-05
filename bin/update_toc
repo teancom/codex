@@ -11,12 +11,111 @@ err() { log "[err] $*" >&2 ; }
 
 fatal() { log "[fatal] $*" >&2 ; exit 1 ; }
 
+
+# version number compare - = returns  0; < returns 1; > returns 22
+
+vercomp () {
+
+    [[ "${1}" == "${2}" ]] && return 0
+
+    local i _ver1 _ver2
+    local _low="" _fill _maxlen
+    _ver1=($(IFS=.; set -- $1; for a in "${@}"; do echo ${a:-0}; done))
+    _ver2=($(IFS=.; set -- $2; for a in "${@}"; do echo ${a:-0}; done))
+
+    if ((${#_ver1[@]} > ${#_ver2[@]}))
+    then
+        _maxlen=${#_ver1[@]}
+        _low=${#_ver2[@]}
+        _fill="_ver2"
+    elif ((${#_ver1[@]} < ${#_ver2[@]}))
+    then
+        _maxlen=${#_ver2[@]}
+        _low=${#_ver1[@]}
+        _fill="_ver1"
+    else
+        _maxlen=${#_ver1[@]}
+    fi
+
+    if [[ -n "${_low}" ]]
+    then
+        for ((i=${_low}; i<${_maxlen}; i++))
+        do
+            [[ "${_fill}" == "_ver1" ]] && _ver1[i]=0 || _ver2[i]=0 
+        done
+    fi
+
+    for ((i=0; i<${_maxlen}; i++))
+    do
+        (( 10#${_ver1[i]} > 10#${_ver2[i]} )) && return 1
+        (( 10#${_ver1[i]} < 10#${_ver2[i]} )) && return 2
+    done
+    return 0
+}
+
 install_dependencies() {
   # for each binary we define a version, binary name, and version check.
-  brew update
-  check_install "node 6.3.0" "brew install" node "brew list --versions node"
+  local _line
+  log "brew update started"
+  brew update 2>&1 | while read _line 
+  do
+      log "${_line}"
+  done
+  log "brew update  finished"
+  check_install_with_brew node 6.3.0  node ""
   check_install "0.12.16" "npm install -g" markdown-toc "npm view markdown-toc version"
-  echo "Dependencies checked or installed."
+  log "Dependencies checked or installed."
+}
+
+# brew allows multiple package versions to be installed 
+# args package min_version binary "install args" 
+# ex. node 6.2.1 6.2.2 6.3.0
+check_install_with_brew() {
+  local _install=false _package="${1}" _version="${2}" _bin="${3}" _args="${4}"
+  declare -a "_checks=($(brew list --versions ${_package}))"
+  _checks=(${_checks[@]:1})
+  declare -a "_versions=(${_version[@]})"
+
+  # echo _versions ${#_versions[@]} ${_versions[@]}
+  # echo _checks  ${#_checks[@]} ${_checks[@]}
+
+  [[ "${#_checks[@]}" < 1 || "${#_versions[@]}" < 1 ]] && fatal "brew check install cannot work" 
+
+  log "Checking for ${_bin} ... "
+
+  if which "${_bin}"
+  then
+    _install=true
+    local a b
+    for a in  "${_versions[@]}"
+    do
+        for b in "${_checks[@]}"
+        do
+            [[ "${a}" == "${b}" ]] && _install=false
+        done
+    done
+    if [[ "${_install}" == false ]]
+    then
+        local _result=$(brew outdated ${_package} -quiet 2>&1)
+        if [[ -n "${_result}" ]] 
+        then
+            [[ "${_result}" == "${_package}" ]] && log  "upgrade for ${_package} exists but not required." || fatal "${_result}"
+        fi
+    fi
+  else
+    _install=true
+  fi
+
+  log _install vaule is "${_install}"
+
+  if [[ ${_install} == true ]]
+  then
+    log "Installing ${_package} ${_version} ..."
+    brew install ${_package}
+    log "OK, ${_package} ${_version} installed."
+  else
+    log "OK, ${_package} is ${_version}"
+  fi
 }
 
 check_install() {
@@ -85,3 +184,58 @@ output_to_file() {
 
 install_dependencies
 output_to_file
+
+# testing functions
+
+testvercomp () {
+    local op
+    set +e
+    vercomp $1 $2
+    case $? in
+        0) op='=';;
+        1) op='>';;
+        2) op='<';;
+    esac
+    set -e
+    if [[ $op != $3 ]]
+    then
+        if [[ $# == 3 ]]
+        then
+            echo "FAIL: Expected '$3', Actual '$op', Arg1 '$1', Arg2 '$2'"
+        else
+            echo "Pass: Negative '$1 $op $2'  Requested '$3'"
+        fi
+    else
+        echo "Pass: '$1 $op $2'"
+    fi
+}
+
+# Run tests
+# argument table format:
+# testarg1   testarg2     expected_relationship
+# echo "The following tests should pass"
+# while read -r test
+# do
+    # testvercomp $test
+# 
+# done << EOF
+# 1            1            =
+# 2.1          2.2          <
+# 3.0.4.10     3.0.4.2      >
+# 4.08         4.08.01      <
+# 3.2.1.9.8144 3.2          >
+# 3.2.1.9.8144 3.2          >
+# 3.2          3.2.1.9.8144 <
+# 1.2          2.1          <
+# 2.1          1.2          >
+# 5.6.7        5.6.7        =
+# 1.01.1       1.1.1        =
+# 1.1.1        1.01.1       =
+# 1            1.0          =
+# 1.0          1            =
+# 1.0.2.0      1.0.2        =
+# 1..0         1.0          =
+# 1.0          1..0         =
+# 1.0.1        1..1         =
+# 1            1            >     !
+# EOF
