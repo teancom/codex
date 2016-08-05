@@ -12,7 +12,7 @@ err() { log "[err] $*" >&2 ; }
 fatal() { log "[fatal] $*" >&2 ; exit 1 ; }
 
 
-# version number compare - = returns  0; < returns 1; > returns 22
+# version number compare - = returns  0; < returns 1; > returns 2
 
 vercomp () {
 
@@ -20,6 +20,9 @@ vercomp () {
 
     local i _ver1 _ver2
     local _low="" _fill _maxlen
+    # split version number string into it parts and assign to arrays while  
+    # making sure version number parts maintains their correct position
+    # NOTE: An empty part like 10...1 gets zero vaules filled in eg. 10.0.0.1
     _ver1=($(IFS=.; set -- $1; for a in "${@}"; do echo ${a:-0}; done))
     _ver2=($(IFS=.; set -- $2; for a in "${@}"; do echo ${a:-0}; done))
 
