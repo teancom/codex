@@ -16,13 +16,19 @@ fatal() { log "[fatal] $*" >&2 ; exit 1 ; }
 
 vercomp () {
 
+    [[ ${#} != 2 || -z "${1}" || -z "${2}" ]] && return 255
+    [[ ! "${1}" =~ ^[0-9.]+$ ]] && return 254
+    [[ ! "${2}" =~ ^[0-9.]+$ ]] && return 254
+
     [[ "${1}" == "${2}" ]] && return 0
 
     local i _ver1 _ver2
     local _low="" _fill _maxlen
+
     # split version number string into it parts and assign to arrays while  
     # making sure version number parts maintains their correct position
     # NOTE: An empty part like 10...1 gets zero vaules filled in eg. 10.0.0.1
+
     _ver1=($(IFS=.; set -- $1; for a in "${@}"; do echo ${a:-0}; done))
     _ver2=($(IFS=.; set -- $2; for a in "${@}"; do echo ${a:-0}; done))
 
@@ -190,29 +196,31 @@ output_to_file
 
 # testing functions
 
-testvercomp () {
-    local op
-    set +e
-    vercomp $1 $2
-    case $? in
-        0) op='=';;
-        1) op='>';;
-        2) op='<';;
-    esac
-    set -e
-    if [[ $op != $3 ]]
-    then
-        if [[ $# == 3 ]]
-        then
-            echo "FAIL: Expected '$3', Actual '$op', Arg1 '$1', Arg2 '$2'"
-        else
-            echo "Pass: Negative '$1 $op $2'  Requested '$3'"
-        fi
-    else
-        echo "Pass: '$1 $op $2'"
-    fi
-}
-
+# testvercomp () {
+    # local op
+    # set +e
+    # vercomp $1 $2
+    # case $? in
+        # 0) op='=';;
+        # 1) op='>';;
+        # 2) op='<';;
+      # 254) op='~';;
+      # 255) op='!';;
+    # esac
+    # set -e
+    # if [[ $op != $3 ]]
+    # then
+        # if [[ $# == 3 ]]
+        # then
+            # echo "FAIL: Expected '$3', Actual '$op', Arg1 '$1', Arg2 '$2'"
+        # else
+            # echo "Pass: Negative '$1 $op $2'  Requested '$3'"
+        # fi
+    # else
+        # echo "Pass: '$1 $op $2'"
+    # fi
+# }
+# 
 # Run tests
 # argument table format:
 # testarg1   testarg2     expected_relationship
@@ -220,7 +228,6 @@ testvercomp () {
 # while read -r test
 # do
     # testvercomp $test
-# 
 # done << EOF
 # 1            1            =
 # 2.1          2.2          <
@@ -241,4 +248,7 @@ testvercomp () {
 # 1.0          1..0         =
 # 1.0.1        1..1         =
 # 1            1            >     !
+# a.b.c        1.1.1        ~
+# 1.1.1        a.b.c        ~
+# a            b            ~
 # EOF
