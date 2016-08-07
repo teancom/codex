@@ -72,7 +72,7 @@ install_dependencies() {
   done
   log "brew update  finished"
   check_install_with_brew node 6.3.0  node ""
-  check_install "0.12.16" "npm install -g" markdown-toc "npm view markdown-toc version"
+  check_install_with_npm  "0.12.16" "npm install -g" markdown-toc "npm view markdown-toc version"
   log "Dependencies checked or installed."
 }
 
@@ -127,7 +127,7 @@ check_install_with_brew() {
   fi
 }
 
-check_install() {
+check_install_with_npm() {
   local _install=false _version=${1} _install_cmd=${2} _bin=${3} _check=${4}
 
   log "Checking for ${_bin} ... "
