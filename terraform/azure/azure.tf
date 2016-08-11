@@ -8,7 +8,6 @@ variable "azure_region"     { default = "West US" } # Azure Region (https://azur
 variable "network"        { default = "10.4" }      # First 2 octets of your /16
 
 variable "resource_group_name" {}
-
 variable "subscription_id" {}
 variable "client_id" {}
 variable "client_secret" {}
@@ -26,13 +25,25 @@ provider "azurerm" {
 #############################################################
 
 # Create a resource group
-resource "azurerm_resource_group" "production" {
-    name     = "${vars.resource_group_name}"
-    location = "${vars.azure_region}"
+resource "azurerm_resource_group" "default" {
+    name     = "${var.resource_group_name}"
+    location = "${var.azure_region}"
 }
 
-###############################################################
+#############################################################
 
+resource "azurerm_virtual_network" "default" {
+    name = "codex_virtual_network"
+    address_space = ["${var.network}.0.0/16"]
+    location = "${var.azure_region}"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+}
+
+#############################################################
+
+output "azure_output" {
+    value = "hello"
+}
 
 ########   #######  ##     ## ######## #### ##    ##  ######
 ##     ## ##     ## ##     ##    ##     ##  ###   ## ##    ##
@@ -55,6 +66,12 @@ resource "azurerm_resource_group" "production" {
 ###############################################################
 # DMZ - De-militarized Zone for NAT box ONLY
 
+resource "azurerm_subnet" "dmz" {
+    name = "${var.resource_group_name}-dmz"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+    virtual_network_name = "${azurerm_virtual_network.default.name}"
+    address_prefix = "${var.network}.0.0/24"
+}
 
 
 ###############################################################
@@ -283,3 +300,77 @@ resource "azurerm_resource_group" "production" {
 ##     ## ##     ## ##    ##    ##     ##  ##     ## ##   ###
 ########  ##     ##  ######     ##    ####  #######  ##    ##
 
+resource "azurerm_public_ip" "bastionip" {
+    name = "bastionip"
+    location = "${var.azure_region}"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+    public_ip_address_allocation = "dynamic"
+}
+
+resource "azurerm_network_interface" "bastion" {
+    name = "bastionNetworkInterface"
+    location = "${var.azure_region}"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+
+    ip_configuration {
+        name = "bastion_ip"
+        subnet_id = "${azurerm_subnet.dmz.id}"
+        private_ip_address_allocation = "dynamic"
+	public_ip_address_id = "${azurerm_public_ip.bastionip.id}"
+    }
+
+}
+
+resource "azurerm_storage_account" "bastion" {
+    name = "bastionaccount"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+    location = "${var.azure_region}"
+    account_type = "Standard_LRS"
+}
+
+resource "azurerm_storage_container" "bastion" {
+    name = "bastioncontainer"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+    storage_account_name = "${azurerm_storage_account.bastion.name}"
+    container_access_type = "private"
+}
+
+
+
+resource "azurerm_virtual_machine" "bastion" {
+
+    name = "bastionvm"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.default.name}"
+    network_interface_ids = ["${azurerm_network_interface.bastion.id}"]
+    vm_size = "Standard_A0"
+
+    storage_image_reference {
+        publisher = "Canonical"
+        offer = "UbuntuServer"
+        sku = "14.04.2-LTS"
+        version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        vhd_uri = "${azurerm_storage_account.bastion.primary_blob_endpoint}${azurerm_storage_container.bastion.name}/myosdisk1.vhd"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+    }
+
+    os_profile {
+        computer_name = "hostname"
+        admin_username = "default"
+        admin_password = "c1oudc0w!"
+    }
+
+    os_profile_linux_config {
+        disable_password_authentication = false
+    }
+
+    tags {
+        environment = "staging"
+    }
+
+}

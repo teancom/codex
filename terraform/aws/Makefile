@@ -19,6 +19,12 @@ destroy:
 	terraform plan -destroy -var-file ${VARS_FILE} -out ${PLAN_FILE}
 	terraform apply ${PLAN_FILE}
 
+aws-watch:
+	nohup ./scripts/timestop >./watch.log 2>&1 < /dev/null &
+
+aws-stopwatch:
+	killall -SIGKILL bash ./scripts/timestop
+
 clean:
 	rm -f ${PLAN_FILE}
 	rm -f ${STATE_FILE}
