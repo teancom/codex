@@ -2520,7 +2520,7 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
+  dns: [10.4.0.2]
   elbs: [staging-cf-elb]
   router_security_groups: [wide-open]
   security_groups: [wide-open]
@@ -2537,7 +2537,7 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
+  dns: [10.4.0.2]
   elbs: [staging-cf-elb]
   router_security_groups: [wide-open]
   security_groups: [wide-open]
@@ -2601,7 +2601,7 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
+  dns: [10.4.0.2]
   elbs: [staging-cf-elb]
   router_security_group: [wide-open]
   security_groups: [wide-open]
