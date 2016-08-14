@@ -2588,6 +2588,8 @@ Not it's time to create our Elastic Load Balancer that will be in front of the `
 Create first the CA Certificate:
 
 ```
+$ mkdir -p /tmp/certs
+$ cd /tmp/certs
 $ certstrap init --common-name "CertAuth"
 Enter passphrase (empty for no passphrase):
 
@@ -2616,6 +2618,18 @@ And last, sign the domain certificates with the CA certificate:
 ```
 $ certstrap sign *.staging.<your domain> --CA CertAuth
 Created out/*.staging.<your domain>.crt from out/*.staging.<your domain>.csr signed by out/CertAuth.key
+```
+
+For safety, let's store the certificates in Vault:
+
+```
+$ cd out
+$ safe write secret/aws/staging/cf/tls/ca "csr@CertAuth.crl"
+$ safe write secret/aws/staging/cf/tls/ca "crt@CertAuth.crt"
+$ safe write secret/aws/staging/cf/tls/ca "key@CertAuth.key"
+$ safe write secret/aws/staging/cf/tls/domain "crt@*.staging.paashub.com.crt"
+$ safe write secret/aws/staging/cf/tls/domain "csr@*.staging.paashub.com.csr"
+$ safe write secret/aws/staging/cf/tls/domain "key@*.staging.paashub.com.key"
 ```
 
 Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
