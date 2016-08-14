@@ -39,13 +39,13 @@ variable "aws_elb_staging_private_key_path" { default = "/dev/null" } # Path to 
 variable "aws_elb_prod_cert_path"           { default = "/dev/null" } # Path to the PROD ELB Certificate
 variable "aws_elb_prod_private_key_path"    { default = "/dev/null" } # Path to the PROD ELB Private Key
 
-variable aws_route53_dev_enabled     { default = 0 } # Set to 1 to create a DEV CNAME
-variable aws_route53_staging_enabled { default = 0 } # Set to 1 to create a STAGING CNAME
-variable aws_route53_prod_enabled    { default = 0 } # Set to 1 to create a PROD CNAME
+variable "aws_route53_dev_enabled"     { default = 0 } # Set to 1 to create a DEV CNAME
+variable "aws_route53_staging_enabled" { default = 0 } # Set to 1 to create a STAGING CNAME
+variable "aws_route53_prod_enabled"    { default = 0 } # Set to 1 to create a PROD CNAME
 
-variable aws_route53_dev_hosted_zone_id     { default = "" } # DEV Hosted Zone ID
-variable aws_route53_staging_hosted_zone_id { default = "" } # STAGING Hosted Zone ID
-variable aws_route53_prod_hosted_zone_id    { default = "" } # PROD Hosted Zone ID
+variable "aws_route53_dev_hosted_zone_id"     { default = "" } # DEV Hosted Zone ID
+variable "aws_route53_staging_hosted_zone_id" { default = "" } # STAGING Hosted Zone ID
+variable "aws_route53_prod_hosted_zone_id"    { default = "" } # PROD Hosted Zone ID
 
 #
 # VPC NAT AMI
