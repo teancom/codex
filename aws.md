@@ -1151,6 +1151,52 @@ schedule regular backups of data systems that are important to our
 running operation, like the BOSH database, Concourse, and Cloud
 Foundry.
 
+### Setting up AWS S3 For Backup Archives
+
+To help keep things isolated, we're going to set up a brand new
+IAM user just for backup archive storage.  It's a good idea to
+name this user something like `backup` or `shield-backup` so that
+no one tries to re-purpose it later, and so that it doesn't get
+deleted. We also need to generate an access key for this user and store those credentials in the Vault:
+
+```
+$ safe set secret/aws/proto/shield/aws access_key secret_key
+access_key [hidden]:
+access_key [confirm]:
+
+secret_key [hidden]:
+secret_key [confirm]:
+```
+
+You're also going to want to provision a dedicated S3 bucket to
+store archives in, and name it something descriptive, like
+`codex-backups`.
+
+Since the generic S3 bucket policy is a little open (and we don't
+want random people reading through our backups), we're going to
+want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
+
+
+```
+{
+  "Statement": [
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:ListAllMyBuckets",
+      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
+    },
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:*",
+      "Resource" : [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
 ### Deploying SHIELD
 
 We'll start out with the Genesis template for SHIELD:
@@ -1222,6 +1268,33 @@ networks:
 (Don't forget to change your `subnet` to match your AWS VPC
 configuration.)
 
+Then we need to configure our `store` and a default `schedule` and `retention` policy:
+
+```
+$ cat properties.yml
+---
+meta:
+  az: us-west-2a
+
+properties:
+  shield:
+    skip_ssl_verify: true
+    store:
+      name: "default"
+      plugin: "s3"
+      config:
+        access_key: (( vault "secret/aws/proto/shield/aws:access_key" ))
+        secret_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
+        bucket: xxxxxx # <- backup's s3 bucket
+        prefix: "/"
+    schedule:
+      name: "default"
+      when: "daily 3am"
+    retention:
+      name: "default"
+      expires: "86400" # 24 hours
+```
+
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the pubic key to our
 Proto-BOSH.  We stuck it in the Vault, at
@@ -1257,46 +1330,7 @@ Director task 13
 ```
 
 Once that's complete, you will be able to access your SHIELD
-deployment, and start configuring your backup jobs.  Before we do
-that, however, let's prepare our Amazon infrastructure to store
-backups in S3, one of SHIELD's built-in archive storage systems.
-
-### Setting up AWS S3 For Backup Archives
-
-To help keep things isolated, we're going to set up a brand new
-IAM user just for backup archive storage.  It's a good idea to
-name this user something like `backup` or `shield-backup` so that
-no one tries to re-purpose it later, and so that it doesn't get
-deleted.
-
-You're also going to want to provision a dedicated S3 bucket to
-store archives in, and name it something descriptive, like
-`codex-backups`.
-
-Since the generic S3 bucket policy is a little open (and we don't
-want random people reading through our backups), we're going to
-want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
-
-
-```
-{
-  "Statement": [
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:ListAllMyBuckets",
-      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
-    },
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:*",
-      "Resource" : [
-        "arn:aws:s3:::your-bucket-name",
-        "arn:aws:s3:::your-bucket-name/*"
-      ]
-    }
-  ]
-}
-```
+deployment, and start configuring your backup jobs.
 
 ### How to use SHIELD
 
