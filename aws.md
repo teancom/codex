@@ -2576,11 +2576,60 @@ meta:
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault meta.vault_prefix "/rds:password" ))
+      pass: (( vault "secret/aws/staging/rds:password" ))
     uaadb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault meta.vault_prefix "/rds:password" ))
+      pass: (( vault "secret/aws/staging/rds:password" ))
+```
+
+Not it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
+
+Create first the CA Certificate:
+
+```
+$ certstrap init --common-name "CertAuth"
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/CertAuth.key
+Created out/CertAuth.crt
+Created out/CertAuth.crl
+```
+
+Then create the certificates for your domain:
+
+```
+$ certstrap request-cert -common-name *.staging.<your domain> -domain *.system.staging.<your domain>,*.apps.staging.<your domain>,*.login.staging.<your domain>,*.uaa.staging.<your domain>
+
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/*.staging.<your domain>.key
+Created out/*.staging.<your domain>.csr
+```
+
+And last, sign the domain certificates with the CA certificate:
+
+```
+$ certstrap sign *.staging.<your domain> --CA CertAuth
+Created out/*.staging.<your domain>.crt from out/*.staging.<your domain>.csr signed by out/CertAuth.key
+```
+
+Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
+
+```
+aws_elb_staging_enabled = "1"
+aws_elb_staging_cert_path = "/path/to/the/signed/domain/certificate.crt"
+aws_elb_staging_private_key_path = "/path/to/the/domain/private.key"
+```
+
+As a quick pre-flight check, run `make manifest` to compile your Terraform plan. If everything worked out you, deploy the changes:
+
+```
+$ make deploy
 ```
 
 Lastly, let's make sure to add our Cloud Foundry domain to properties.yml:
@@ -2590,7 +2639,7 @@ Lastly, let's make sure to add our Cloud Foundry domain to properties.yml:
 meta:
   skip_ssl_validation: true
   cf:
-    base_domain: your.staging.cf.example.com
+    base_domain: staging.<your domain> # <- Your CF domain
     blobstore_config:
       fog_connection:
         aws_access_key_id: (( vault "secret/aws:access_key" ))
@@ -2658,7 +2707,7 @@ meta:
     z2: us-west-2b
     z3: us-west-2c
   dns: [10.4.0.2]
-  elbs: [staging-cf-elb]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 ```
@@ -2674,7 +2723,7 @@ meta:
     z2: us-west-2b
     z3: us-west-2c
   dns: [10.4.0.2]
-  elbs: [staging-cf-elb]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 
@@ -2692,7 +2741,7 @@ networks:
   - range: 10.4.35.128/25
     static: [10.4.35.131 - 10.4.35.227]
     reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
-    gateway: 10.4.35.128
+    gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
 - name: cf1
@@ -2766,7 +2815,7 @@ meta:
     z2: us-west-2b
     z3: us-west-2c
   dns: [10.4.0.2]
-  elbs: [staging-cf-elb]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_group: [wide-open]
   security_groups: [wide-open]
 
@@ -2784,7 +2833,7 @@ networks:
   - range: 10.4.35.128/25
     static: [10.4.35.131 - 10.4.35.227]
     reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
-    gateway: 10.4.35.128
+    gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
 - name: cf1
@@ -2840,11 +2889,7 @@ properties:
   cc:
     security_group_definitions:
     - name: load_balancer
-      rules:
-      - destination: YOUR LOAD BALANCER IP1
-        protocol: all
-      - destination: YOUR LOAD BALANCER IP2
-        protocol: all
+      rules: []
     - name: services
       rules:
       - destination: 10.4.42.0-10.4.44.255
