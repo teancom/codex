@@ -1330,9 +1330,7 @@ Director task 13
 ```
 
 Once that's complete, you will be able to access your SHIELD
-deployment, and start configuring your backup jobs.  Before we do
-that, however, let's prepare our Amazon infrastructure to store
-backups in S3, one of SHIELD's built-in archive storage systems.
+deployment, and start configuring your backup jobs.
 
 ### How to use SHIELD
 
