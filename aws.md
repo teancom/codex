@@ -2632,6 +2632,19 @@ As a quick pre-flight check, run `make manifest` to compile your Terraform plan.
 $ make deploy
 ```
 
+From here we need to configure our domain to point to the ELB. Let's use Route53 to do so. At the AWS Console, create a new _Hosted Zone_ for your domain. Then go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
+
+```
+aws_route53_staging_enabled = "1"
+aws_route53_staging_hosted_zone_id = "XXXXXXXXXXX"
+```
+
+As usual, run `make manifest` to compile your Terraform plan and if everything worked out you, deploy the changes:
+
+```
+$ make deploy
+```
+
 Lastly, let's make sure to add our Cloud Foundry domain to properties.yml:
 
 ```
