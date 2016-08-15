@@ -120,6 +120,7 @@ aws_access_key = "..."
 aws_secret_key = "..."
 aws_vpc_name = "my-new-vpc"
 aws_key_name = "bosh-ec2-key"
+aws_key_file = "your ec2 private key path"
 ```
 
 If you need to change the region or subnet, you can override the defaults by adding:
@@ -2444,7 +2445,7 @@ As you might have guessed, the next step will be to see what parameters we need 
 ```
 $ cd aws/staging
 $ make manifest
-57 error(s) detected:
+72 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
  - $.meta.azs.z2: What availability zone should the *_z2 vms be placed in?
  - $.meta.azs.z3: What availability zone should the *_z3 vms be placed in?
@@ -2487,6 +2488,21 @@ $ make manifest
  - $.networks.router2.subnets.0.range: Enter the CIDR address for this subnet
  - $.networks.router2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
  - $.networks.router2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner1.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner1.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner1.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner1.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner2.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner2.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner2.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner3.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner3.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner3.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner3.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner3.subnets.0.static: Enter the static IP ranges for this subnet
  - $.properties.cc.buildpacks.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.region: Which region are the blobstore S3 buckets in?
@@ -2502,10 +2518,6 @@ $ make manifest
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
-
-
-Failed to merge templates; bailing...
-make: *** [deploy] Error 3
 ```
 
 Oh boy. That's a lot. Cloud Foundry must be complicated. Looks like a lot of the fog_connection properties are all duplicates though, so lets fill out `properties.yml` with those:
