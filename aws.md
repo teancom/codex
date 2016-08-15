@@ -2532,7 +2532,7 @@ meta:
       fog_connection:
         aws_access_key_id: (( vault "secret/aws:access_key" ))
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
-        region: us-east-1
+        region: us-west-2
 ```
 
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
@@ -2779,7 +2779,7 @@ meta:
     z3: us-west-2c
   dns: [10.4.0.2]
   elbs: [staging-cf-elb]
-  router_security_group: [wide-open]
+  router_security_groups: [wide-open]
   security_groups: [wide-open]
 
 networks:
