@@ -1284,8 +1284,8 @@ properties:
       name: "default"
       plugin: "s3"
       config:
-        access_key: (( vault "secret/aws/proto/shield/aws:access_key" ))
-        secret_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
+        access_key_id: (( vault "secret/aws/proto/shield/aws:access_key" ))
+        secret_access_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
         bucket: xxxxxx # <- backup's s3 bucket
         prefix: "/"
     schedule:
