@@ -249,90 +249,56 @@ $ vault write pki/roles/openvpn allowed_domains="openvpn" allow_subdomains="true
 Success! Data written to: pki/roles/openvpn
 ```
 
-Now, let's grab the CA and initial CRL (will be empty, but is required nonetheless). The data will be stuck in Vault momentarily:
+Now, let's use safe to stick the CA pem and initial CRL into the secrets backend for us:
 
 ```
-$ curl ${VAULT_ADDRESS}/v1/pki/ca/pem -k
-OUTPUT REDACTED
-$ curl ${VAULT_ADDRESS}/v1/pki/crl/pem -k
-OUTPUT REDACTED
+$ safe ca-pem secret/aws/openvpn/proto/ca
+$ safe crl-pem secret/aws/openvpn/proto/crl
 ```
 ### Setup Diffie-Hellman
 
 The [Diffie-Hellman][dh] key-exchange is a secure way to exchange keys.
 
-We will need to generate our DH params via `openssl`, and store it in dh.pem (for now, we'll stick
-it in Vault momentarily):
+We will use `safe` to generate the DH params and store in the secret backend (uses `openssl dhparam`
+under the hood):
 
 ```
-$ $ openssl dhparam -out dh.pem 2048
+$ safe dhparam 2048 secret/aws/openvpn/proto/dhparam
 Generating DH parameters, 2048 bit long safe prime, generator 2
 This is going to take a long time
-......................................+.........................................................................+.....................................+..............................................................................+............+...........................
+.....................................................................................................................+.......................................................................................................+............................................................+..........................
 (output shortened for sanity)
 ```
 
 ## Generate Certificates
 
-Time to generate certificates. Take the private key, and cert values, and store them in
-the correct area of the `secret` backend in Vault. **NOTE** the private keys are not stored
-after creation, unless you put the data somewhere, so you will need to re-issue the cert
-if you lose them. Manually storing in Vault, by creating a yaml file, and importing it to Vault
-via `safe` is recommended:
+Time to generate certificates. This used to be convoluted, but as of [safe v0.0.23](https://github.com/starkandwayne/safe/releases/tag/v0.0.23),
+this is a lot easier:
 
 ```
-$ safe vault pki/issue/openvpn common_name="server.openvpn"
-Key             	Value
----             	-----
-lease_id        	pki/issue/openvpn/d5c7a33b-68e6-d0f6-3503-6bf3a771a06d
-lease_duration  	2591999
-lease_renewable 	false
-certificate     	REDACTED
-issuing_ca      	REDACTED
-private_key     	REDACTED
-private_key_type	rsa
-serial_number   	67:f4:6d:65:4d:0e:b8:7a:fa:be:f0:d5:f5:ae:86:59:e2:4e:e7:96
+$ safe cert secret/aws/proto/openvpn/certs/server.openvpn
 ```
 
-### Repeat on Each Environment
-
-Do this for each of the client certificates needing to be generated as well. Those do not
-need to be stored in Vault, but should be securely transferred to each user to be connecting
-to the VPN (one cert per user). You *should* stick the serial number in some database (Vault
-might be easiest), associated with each user, should you need to revoke it down the road,
-as Vault requires the serial number of the certificate to revoke it, and add to the CRL.
-
-To get all of the multi-line certificate/key/pem data into Vault, I recommend
-`spruce json | safe import`:
+Now we need to generate certs for each user:
 
 ```
-$ cat certs.yml
----
-secret/aws/proto/openvpn/server:
-  cert: |
-  REDACTED CERTIFICATE
-  key: |
-  REDACTED PRIVATE KEY
-secret/aws/proto/openvpn/ca:
-  cert: |
-  REDACTED CA CERTIFICATE
-secret/aws/proto/openvpn/crl:
-  pem: |
-  REDACTED CRL PEM DATA
-secret/aws/proto/openvpn/dh:
-  pem: |
-  REDACTED DH PARAMS PEM DATA
-$ spruce json certs.yml | safe import
+$ safe cert secret/aws/proto/openvpn/certs/user1.openvpn
+$ # repeat for all users, and distribute cert/keys to end-users securely
 ```
 
-### Cleanup Temporary Files
-
-With that data in vault, you should clean up any temporary files that you used to store
-certs/keys prior to placing in Vault:
+Lastly, we just need to update properties.yml, to point to the correct paths in Vault, and provide
+the route to our VPC for the VPN to advertise:
 
 ```
-rm certs.yml
-rm dh.pem
+$ cat properties.yml
+meta:
+  certs:
+    ca: (( vault meta.vault_prefix "/ca:ca_pem"
+    crl: (( vault meta.vault_prefix "/crl:crl_pem"
+    server: (( vault meta.vault_prefix "/certs/server.openvpn:cert" ))
+    key: (( vault meta.vault_prefix "/certs/server.openvpn:key" ))
+  client_routes:
+  - 10.4.0.0 255.255.0.0
 ```
 
 ### Deploy OpenVPN
