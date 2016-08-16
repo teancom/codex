@@ -52,7 +52,6 @@ create_contents() {
 
 generate_toc(){
   guides=(
-    INTRO.md
     aws.md
     azure.md
     openstack.md

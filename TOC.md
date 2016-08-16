@@ -1,6 +1,3 @@
-- [Welcome to Codex](#welcome-to-codex)
-  * [Infrastructure Guides](#infrastructure-guides)
-  * [Updates](#updates)
 - [Part I - Deploying on AWS](aws.md#part-i---deploying-on-aws)
   * [Overview](aws.md#overview)
   * [Credential Checklist](aws.md#credential-checklist)
