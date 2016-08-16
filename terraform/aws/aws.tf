@@ -1590,4 +1590,3 @@ resource "aws_instance" "bastion" {
 output "box.bastion.public" {
   value = "${aws_instance.bastion.public_ip}"
 }
-
