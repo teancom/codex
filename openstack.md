@@ -16,6 +16,7 @@ Like stated, we will be using Option 2, the fully configurable DevStack. We will
 So to get started, you will need a dedicated Linux machine - I have an HP laptop with 16GB of RAM which runs it fine. To begin, you will need to be connected to an ethernet cord and know the network interface name for it, and you have to configure/know your IP address on your network. Ethernet cable I can't help you out much with, but to figure out the network interface, run the following command. Chances are it will either be `eth0` or `eno1`.
 
 ```bash
+# We want the first option.
 $ ifconfig
 eno1      Link encap:Ethernet  HWaddr 50:65:f3:b9:af:93  
           inet addr:192.168.1.16  Bcast:192.168.1.255  Mask:255.255.255.0
@@ -35,26 +36,6 @@ wlo1      Link encap:Ethernet  HWaddr d0:7e:35:a0:33:d6
           RX bytes:9339 (9.3 KB)  TX bytes:10114 (10.1 KB)
 ```
 
-Running Ubuntu 16.04, my network interface name was `eno1`. Before 15, it was named `eth1` so its most likely one or the other. 
-
-As for your IP address, I suggest setting it to a static IP so that your DHCP reassignments don't mess up your DevStack implementation, but using your DHCP IP is okay for development, those instructions are listed below. To do so, open up `/etc/network/inferfaces` and add these lines below whatever is there.
-
-```
-# Code from before changing anything
-..................
-
-# My IP description
-# IPv4 address
-iface eth0 inet static
-	address	192.168.1.100    # Set this to whatever IP you have available/need, make sure its in your network range.
-	netmask	255.255.255.0	   # Give yourself all 255 addresses
-	network	192.168.1.0  	   # What network you want/need
-	broadcast 192.168.1.255  
-	gateway	192.168.1.1      # Gateway to your network, usually x.x.x.1
-```
-
-If you don't want to set a static IP, you can see your current IP with `ip addr show` and it will display your current IP address(es). Pick the one that matches your network interface.
-
 
 #### DevStack Setup
 To actually get DevStack running, we will need to pull the repository. *Note that you will need a user with sudo priviledges for the process to work.*
@@ -68,9 +49,6 @@ Switch into the new `devstack` directory, and create a file called `local.conf`.
 
 ```
 [[local|localrc]]
-FLOATING_RANGE= <YOUR NETWORK W/ SUBNET MASK; ex: 192.168.1.0/24>
-FIXED_RANGE= <INTERNAL ADDRESS RANGES; ex: 10.4.0.0/16 >
-FIXED_NETWORK_SIZE=256
 FLAT_INTERFACE= < Network interface name to ethernet; ex: eth0 OR eno1 >
 ADMIN_PASSWORD=supersecret
 DATABASE_PASSWORD=iheartdatabases
@@ -94,14 +72,28 @@ The password: supersecret
 2016-08-11 00:16:07.106 | stack.sh completed in 463 seconds.
 ```
 
-The remaining is from my setup. If you visit the address given - the one ending in `/dashboard` then you should hopefully see the OpenStack dashboard. Now things always look much better than what they are, so let's run some tests just to make sure everything is set up. In the `devstack` directory, run the test scripts.
+The remaining is from my setup. If you visit the address given - the one ending in `/dashboard` then you should hopefully see the OpenStack dashboard.  You will need your `AUTH_URL`, and to know what that is you will need to run the openstack config and grep for the system variable.
 
-> TODO: Finish the setup
+```
+$ openrc  # Run this in the devstack directory
+OS_AUTH_URL=http://<SOME URL>
+```
+
+Now things always look much better than what they are, so let's run some tests just to make sure everything is set up. In the `devstack` directory, run the test scripts.
 
 ```bash
 # Will run through every test and outputs the result.
 $ ./exercise.sh
+```
 
+## Setting Up an OpenStack Project
+In the `terraform/openstack` directory of this repo, create a file called `openstack.tfvars` and enter the above values in the following format, switching out `YOUR_NAME` and `YOUR_IP`:
+
+```
+tenant_name = "<YOUR_NAME>-cfproj"
+user_name = "vcap"
+password = "Cl0udC0w"
+auth_url = "<YOUR OS AUTH URL>"
 ```
 
 

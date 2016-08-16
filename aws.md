@@ -120,6 +120,7 @@ aws_access_key = "..."
 aws_secret_key = "..."
 aws_vpc_name = "my-new-vpc"
 aws_key_name = "bosh-ec2-key"
+aws_key_file = "your ec2 private key path"
 ```
 
 If you need to change the region or subnet, you can override the defaults by adding:
@@ -1151,6 +1152,52 @@ schedule regular backups of data systems that are important to our
 running operation, like the BOSH database, Concourse, and Cloud
 Foundry.
 
+### Setting up AWS S3 For Backup Archives
+
+To help keep things isolated, we're going to set up a brand new
+IAM user just for backup archive storage.  It's a good idea to
+name this user something like `backup` or `shield-backup` so that
+no one tries to re-purpose it later, and so that it doesn't get
+deleted. We also need to generate an access key for this user and store those credentials in the Vault:
+
+```
+$ safe set secret/aws/proto/shield/aws access_key secret_key
+access_key [hidden]:
+access_key [confirm]:
+
+secret_key [hidden]:
+secret_key [confirm]:
+```
+
+You're also going to want to provision a dedicated S3 bucket to
+store archives in, and name it something descriptive, like
+`codex-backups`.
+
+Since the generic S3 bucket policy is a little open (and we don't
+want random people reading through our backups), we're going to
+want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
+
+
+```
+{
+  "Statement": [
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:ListAllMyBuckets",
+      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
+    },
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:*",
+      "Resource" : [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
 ### Deploying SHIELD
 
 We'll start out with the Genesis template for SHIELD:
@@ -1222,6 +1269,33 @@ networks:
 (Don't forget to change your `subnet` to match your AWS VPC
 configuration.)
 
+Then we need to configure our `store` and a default `schedule` and `retention` policy:
+
+```
+$ cat properties.yml
+---
+meta:
+  az: us-west-2a
+
+properties:
+  shield:
+    skip_ssl_verify: true
+    store:
+      name: "default"
+      plugin: "s3"
+      config:
+        access_key_id: (( vault "secret/aws/proto/shield/aws:access_key" ))
+        secret_access_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
+        bucket: xxxxxx # <- backup's s3 bucket
+        prefix: "/"
+    schedule:
+      name: "default"
+      when: "daily 3am"
+    retention:
+      name: "default"
+      expires: "86400" # 24 hours
+```
+
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the pubic key to our
 Proto-BOSH.  We stuck it in the Vault, at
@@ -1257,46 +1331,7 @@ Director task 13
 ```
 
 Once that's complete, you will be able to access your SHIELD
-deployment, and start configuring your backup jobs.  Before we do
-that, however, let's prepare our Amazon infrastructure to store
-backups in S3, one of SHIELD's built-in archive storage systems.
-
-### Setting up AWS S3 For Backup Archives
-
-To help keep things isolated, we're going to set up a brand new
-IAM user just for backup archive storage.  It's a good idea to
-name this user something like `backup` or `shield-backup` so that
-no one tries to re-purpose it later, and so that it doesn't get
-deleted.
-
-You're also going to want to provision a dedicated S3 bucket to
-store archives in, and name it something descriptive, like
-`codex-backups`.
-
-Since the generic S3 bucket policy is a little open (and we don't
-want random people reading through our backups), we're going to
-want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
-
-
-```
-{
-  "Statement": [
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:ListAllMyBuckets",
-      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
-    },
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:*",
-      "Resource" : [
-        "arn:aws:s3:::your-bucket-name",
-        "arn:aws:s3:::your-bucket-name/*"
-      ]
-    }
-  ]
-}
-```
+deployment, and start configuring your backup jobs.
 
 ### How to use SHIELD
 
@@ -2410,7 +2445,7 @@ As you might have guessed, the next step will be to see what parameters we need 
 ```
 $ cd aws/staging
 $ make manifest
-57 error(s) detected:
+72 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
  - $.meta.azs.z2: What availability zone should the *_z2 vms be placed in?
  - $.meta.azs.z3: What availability zone should the *_z3 vms be placed in?
@@ -2453,6 +2488,21 @@ $ make manifest
  - $.networks.router2.subnets.0.range: Enter the CIDR address for this subnet
  - $.networks.router2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
  - $.networks.router2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner1.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner1.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner1.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner1.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner2.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner2.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner2.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner3.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner3.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner3.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner3.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner3.subnets.0.static: Enter the static IP ranges for this subnet
  - $.properties.cc.buildpacks.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.region: Which region are the blobstore S3 buckets in?
@@ -2468,10 +2518,6 @@ $ make manifest
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
-
-
-Failed to merge templates; bailing...
-make: *** [deploy] Error 3
 ```
 
 Oh boy. That's a lot. Cloud Foundry must be complicated. Looks like a lot of the fog_connection properties are all duplicates though, so lets fill out `properties.yml` with those:
@@ -2486,7 +2532,7 @@ meta:
       fog_connection:
         aws_access_key_id: (( vault "secret/aws:access_key" ))
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
-        region: us-east-1
+        region: us-west-2
 ```
 
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
@@ -2733,7 +2779,7 @@ meta:
     z3: us-west-2c
   dns: [10.4.0.2]
   elbs: [staging-cf-elb]
-  router_security_group: [wide-open]
+  router_security_groups: [wide-open]
   security_groups: [wide-open]
 
 networks:

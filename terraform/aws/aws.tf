@@ -499,6 +499,7 @@ output "aws.network.dev-cf-db-2.subnet" {
 }
 resource "aws_db_subnet_group" "dev-cf-db" {
     name = "${var.aws_vpc_name}-dev-cf-db"
+    description = "Managed by Terraform"
     subnet_ids = ["${aws_subnet.dev-cf-db-0.id}", "${aws_subnet.dev-cf-db-1.id}", "${aws_subnet.dev-cf-db-2.id}"]
     tags { Name = "${var.aws_vpc_name}-dev-cf-db" }
 }
@@ -777,6 +778,7 @@ output "aws.network.staging-cf-db-2.subnet" {
 }
 resource "aws_db_subnet_group" "staging-cf-db" {
     name = "${var.aws_vpc_name}-staging-cf-db"
+    description = "Managed by Terraform"
     subnet_ids = ["${aws_subnet.staging-cf-db-0.id}", "${aws_subnet.staging-cf-db-1.id}", "${aws_subnet.staging-cf-db-2.id}"]
     tags { Name = "${var.aws_vpc_name}-staging-cf-db" }
 }
@@ -1055,6 +1057,7 @@ output "aws.network.prod-cf-db-2.subnet" {
 }
 resource "aws_db_subnet_group" "prod-cf-db" {
     name = "${var.aws_vpc_name}-prod-cf-db"
+    description = "Managed by Terraform"
     subnet_ids = ["${aws_subnet.prod-cf-db-0.id}", "${aws_subnet.prod-cf-db-1.id}", "${aws_subnet.prod-cf-db-2.id}"]
     tags { Name = "${var.aws_vpc_name}-prod-cf-db" }
 }
