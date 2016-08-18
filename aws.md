@@ -148,13 +148,12 @@ aws_key_file = /Users/<username>/.ssh/cf-deploy.pem
 ## Create AWS Resources with Terraform
 
 Once the requirements for AWS are met, we can put it all together and build out
-your shiny new Virtual Private Cloud (VPC) in Amazon.  For this step, you're
-going to want to be in the `CODEX_ROOT/terraform/aws` sub-directory of this
-repository.  
+your shiny new Virtual Private Cloud (VPC), NAT server and Bastion Host. Change
+to the `terraform/aws` sub-directory of this repository before we begin.
 
-This Terraform configuration directly matches the [Network Plan][netplan] for
-the demo environment.  For deploying in other environments like production, some
-tweaks or rewrites may need to be made.
+The configuration directly matches the [Network Plan][netplan] for the demo
+environment.  When deploying in other environments like production, some tweaks
+or rewrites may need to be made.
 
 ### Variable File
 
@@ -224,19 +223,22 @@ doc for help.
 
 ### Connect to Bastion Host
 
-When all the output has scrolled by from Terraform, at the very end it will have
-the following:
+When all the Terraform output has scrolled by, at the very end it will give you
+the IP addresses you can use to connect:
 
 ```
 box.bastion.public                      = 52.43.51.197
 box.nat.public                          = 52.41.225.204
 ```
 
-To connect to your server use your **EC2 Key Pair** `*.pem` file that was stored
-from the [Generate EC2 Key Pair][#generate-ec2-key-pair] step before.
+You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
+[Generate EC2 Key Pair][#generate-ec2-key-pair] step before as your credential
+to connect.
 
-We'll use the `-i` flag to give SSH the path to the `IdentityFile` and the default
-user on the Bastion server is `ubuntu`.
+In forming the SSH connection command, use the `-i` flag to give SSH the path to
+the `IdentityFile`.  The default user on the Bastion server is `ubuntu`.  This
+will change in a little bit though when we create a new user, so don't get too
+compfy.
 
 ```
 $ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
