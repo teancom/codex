@@ -18,7 +18,7 @@ each of the environments created after the proto-BOSH key benefits of:
 
 Once the proto-BOSH environment is setup, the child environments will have the
 added benefit of being able to update their BOSH software as a release, rather
-than having to re-initialize with bosh-init.
+than having to re-initialize with `bosh-init`.
 
 This also increases the resiliency of all BOSH directors through monitoring and
 backups with software created by Stark & Wayne's engineers.
@@ -58,10 +58,10 @@ credentials and resources needed.
 1. On the AWS web console, access the IAM service, and click on `Users` in the
 sidebar.  Then create a new user and select "Generate an access key for each user".
 
-  NOTE: **Make sure you save the secret key somewhere secure**, like 1Password or a
-  Vault instance.  Amazon will be unable to give you the **Secret Key ID** if you
-  misplace it -- your only recourse at that point is to generate a new set of keys
-  and start over.
+  **NOTE**: **Make sure you save the secret key somewhere secure**, like 1Password
+  or a Vault instance.  Amazon will be unable to give you the **Secret Key ID**
+  if you misplace it -- your only recourse at that point is to generate a new
+  set of keys and start over.
 
 2. Next, find the `cf` user and click on the username. This should bring up a
 summary of the user with things like the _User ARN_, _Groups_, etc.  In the
@@ -99,49 +99,99 @@ and paste the following content:
 
 ### Name Your VPC
 
-This step is really simple -- just make one up.  The VPC name will be used to prefix all of the Network ACLs, Subnets and Security Groups, so that you can have multiple VPCs under one account without going cross-eyed trying to keep them separate.
+This step is really simple -- just make one up.  The VPC name will be used to
+prefix certain things that Terraform creates in the AWS Virtual Private Cloud.
+When managing multiple VPC's this can help you to sub-select only the ones you're
+concerned about.
+
+The name is used with the Terraform configuration file `aws.tfvars`.  For example,
+a prefix of `snw` for Stark & Wayne would show up before VPC components like
+Subnets, Network ACLs and Security Groups:
+
+| Name            | ID              |
+| :-------------- | :-------------- |
+| snw-dev-infra-0 | subnet-cf7812b9 |
+| snw-hardened    | acl-10feff74    |
+| snw-dmz         | sg-e0cfcf86     |
 
 ### Generate EC2 Key Pair
 
-The Access Key / Secret Key is used to get access to the Amazon Web Services themselves.  In order to properly deploy the NAT and Bastion Host instances to EC2, you're going to need an EC2 Key Pair.  This is the key pair you're going to need to use to SSH into the instances.
+The **Access Key ID** / **Secret Key ID** are used to get access to the Amazon
+Web Services themselves.  In order to properly deploy on EC2 over SSH, we'll need
+to create an **EC2 Key Pair**.  This will be used as we bring up the initial NAT
+and Bastion Host instances. And is the SSH key you'll use to connect from your
+local machine to the Bastion.
 
-Starting from the main Amazon Web Console, go to Service > EC2, and then click the _Key Pairs_ link under _Network & Security_. The big blue `Create Key Pair` button.  Make a note of the name you chose for the key pair, because we're going to need that for our Terraform configuration.
+**NOTE**: Make sure you are in the correct region (top-right corner of the black
+menu bar) when you create your **EC2 Key Pair**. Otherwise, it just plain won't
+work. The region name setting can be found in `aws.tf` and the mapping to the
+region in the menu bar can be found on [Amazon Region Doc][amazon-region-doc].
 
-**N.B.**: Make sure you are in the correct region (top-right corner of the black menu bar) when you create your EC2 Key Pair. Otherwise, it just plain won't work. The region name setting can be found in `aws.tf` and the mapping to the region in the menu bar can be found on [Amazon Region Doc] [amazon-region-doc].
+1. Starting from the main Amazon Web Console, go to Service > EC2, and then click
+the _Key Pairs_ link under _Network & Security_. Look for the big blue
+`Create Key Pair` button.
+
+2. This downloads a file matching the name of your **EC2 Key Pair**.  Example,
+a key pair named cf-deploy would produce a file named `cf-deploy.pem` and be saved
+to your Downloads folder.  Also `chmod 0600` the `*.pem` file.
+
+3. Decide where you want this file to be.  All `*.pem` files are ignored in the
+codex repository.  So you can either move this file to the same folder as
+`CODEX_ROOT/tefrraform/aws` or move it to a place you keep SSH keys and use the
+full path to the `*.pem` file in your `aws.tfvars` for the `aws_key_file`
+variable name.
+
+```
+aws_key_file = /Users/<username>/.ssh/cf-deploy.pem
+```
 
 ## Create AWS Resources with Terraform
 
-Once the requirements for AWS are met, we can put it all together and build out your shiny new Virtual Private Cloud (VPC) in Amazon.  For this step, you're going to want to be in the `terraform/aws` sub-directory of this repository.  This Terraform configuration directly matches the [Network Plan][netplan] for the demo environment.  For deploying in production, you may need to tweak or rewrite.
+Once the requirements for AWS are met, we can put it all together and build out
+your shiny new Virtual Private Cloud (VPC) in Amazon.  For this step, you're
+going to want to be in the `CODEX_ROOT/terraform/aws` sub-directory of this
+repository.  
 
-Create a `aws.tfvars` file with the following configurations (substituting your actual values, of course), all the other configurations have default setting in the `terraform/aws/aws.tf` file.
+This Terraform configuration directly matches the [Network Plan][netplan] for
+the demo environment.  For deploying in other environments like production, some
+tweaks or rewrites may need to be made.
+
+### Variable File
+
+Create a `aws.tfvars` file with the following configurations (substituting your
+actual values), all the other configurations have default setting in the
+`terraform/aws/aws.tf` file.
 
 ```
 aws_access_key = "..."
 aws_secret_key = "..."
-aws_vpc_name = "my-new-vpc"
-aws_key_name = "bosh-ec2-key"
-aws_key_file = "your ec2 private key path"
+aws_vpc_name   = "my-new-vpc"
+aws_key_name   = "bosh-ec2-key"
+aws_key_file   = "your ec2 private key path"
 ```
 
-If you need to change the region or subnet, you can override the defaults by adding:
+If you need to change the region or subnet, you can override the defaults
+by adding:
 
 ```
 aws_region = "us-east-1"
 network = "10.42"
 ```
 
-You may change some default settings according to the real cases you are working on. For example, you can change `instance_type (default is t2.small) ` in `aws.tf` to large size if the bastion server has high workload.
+You may change some default settings according to the real cases you are
+working on. For example, you can change `instance_type (default is t2.small) `
+in `aws.tf` to large size if the Bastion would require a high workload.
 
-NOTE: We recommend [a region with three availability zones][az] for production level environments.
+### Production Considerations
 
-As an option, if you have the codex repo as your base, you can call `make aws-watch` - and `make aws-stopwatch` to stop the script - to automate the startup and shutdown of your instances at certain times to reduce runtime cost. To do so, use a digit between 0-24 representing the hour like below which will turn on the instances at 9:00AM and turn them off at 5:00PM local time.
+When considering production availability. We recommend [a region with three availability zones][az]
+for best HA results.  Vault requires at least three zones.  Please feel free to
+list any other software that requires more than two zones for HA.
 
-```
-startup = "9"
-shutdown = "17"
-```
+### Build Resources
 
-As a quick pre-flight check, run `make manifest` to compile your Terraform plan and suss out any issues with naming, missing variables, configuration, etc.:
+As a quick pre-flight check, run `make manifest` to compile your Terraform plan
+and suss out any issues with naming, missing variables, configuration, etc.:
 
 ```
 $ make manifest
@@ -151,10 +201,12 @@ Refreshing Terraform state prior to plan...
 
 <snip>
 
-Plan: 33 to add, 0 to change, 0 to destroy.
+Plan: 129 to add, 0 to change, 0 to destroy.
 ```
 
-If everything worked out you should se a summary of the plan.  If this is the first time you've done this, all of your changes should be additions.  The numbers may differ from the above output, and that's okay.
+If everything worked out you should se a summary of the plan.  If this is the
+first time you've done this, all of your changes should be additions.  The
+numbers may differ from the above output, and that's okay.
 
 Now, to pull the trigger, run `make deploy`:
 
@@ -162,20 +214,60 @@ Now, to pull the trigger, run `make deploy`:
 $ make deploy
 ```
 
-Terraform will connect to AWS, using your **Access Key ID** and **Secret Key ID**, and spin up all the things it needs.  When it finishes, you should be left with a bunch of subnets, configured network ACLs, security groups, routing tables, a NAT instance (for public internet connectivity) and a Bastion host.
+Terraform will connect to AWS, using your **Access Key ID** and **Secret Key ID**,
+and spin up all the things it needs.  When it finishes, you should be left with
+a bunch of subnets, configured network ACLs, security groups, routing tables,
+a NAT instance (for public internet connectivity) and a Bastion host.
 
-If the `deploy` step fails with errors like:
+If you run into issues before this point refer to our [troubleshooting][troubleshooting]
+doc for help.
+
+### Connect to Bastion Host
+
+When all the output has scrolled by from Terraform, at the very end it will have
+the following:
 
 ```
- * aws_subnet.prod-cf-edge-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d.
-	status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
- * aws_subnet.prod-infra-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e.
-	status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
-* aws_subnet.dev-infra-2: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e.
-	status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
+box.bastion.public                      = 52.43.51.197
+box.nat.public                          = 52.41.225.204
 ```
 
-you should run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to replace the restricted zone.
+To connect to your server use your **EC2 Key Pair** `*.pem` file that was stored
+from the [Generate EC2 Key Pair][#generate-ec2-key-pair] step before.
+
+We'll use the `-i` flag to give SSH the path to the `IdentityFile` and the default
+user on the Bastion server is `ubuntu`.
+
+```
+$ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
+```
+
+You're now ready to [Prepare the Bastion Host][prepare-bastion-host].
+
+### Automate Build and Teardown
+
+When working with development environments only, there are options built into
+Terraform that will allow you to configure additional variables and then run a
+script that will automatically create or destroy the base Terraform environment
+for you (a NAT server and a Bastion Host).  This allows us to help reduce runtime
+cost.
+
+Setup the variables of what time (in military time) that you'd like the script's
+time range to monitor.
+
+```
+startup = "9"
+shutdown = "17"
+```
+
+With the `startup` and `shutdown` variables configured in the `aws.tfvars` file,
+you can then return to the `CODEX_ROOT/terraform/aws` folder and run:
+
+* `make aws-watch`
+* `make aws-stopwatch`
+
+The first starts the background process that will be checking if it's time to
+begin the teardown.  The second will shutdown the background process.
 
 ## Prepare Bastion Host
 
@@ -255,7 +347,7 @@ $ jumpbox
 
 For more information, check out [the jumpbox repo][jumpbox] on Github.
 
-Note: try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.  The latter provisions the jumpbox machine as part of the deployment, provides requisite packages, and creates user accounts.  The former is really only useful for setting up / updating the bastion host.
+**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.  The latter provisions the jumpbox machine as part of the deployment, provides requisite packages, and creates user accounts.  The former is really only useful for setting up / updating the bastion host.
 
 ## A Land Before Time
 
@@ -324,10 +416,10 @@ Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
 ...
 ```
 
-(Note: you probably want to run this in a `tmux` session, in the
-foreground.  Running it in the background sounds like a fine idea,
-except that Vault is pretty chatty, and we can't redirect the
-output to `/dev/null` because we need to see that root token.)
+**NOTE**: You probably want to run this in a `tmux` session, in the foreground.
+Running it in the background sounds like a fine idea, except that Vault is pretty
+chatty, and we can't redirect the output to `/dev/null` because we need to see
+that root token.
 
 With our proto-Vault up and spinning, we can target it:
 
@@ -446,9 +538,8 @@ Created environment aws/proto:
 0 directories, 10 files
 ```
 
-(Note: don't forget that `--type bosh-init` flag, it's very
-important. otherwise, you'll run into problems with your
-deployment)
+**NOTE** Don't forget that `--type bosh-init` flag is very important. Otherwise,
+you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and
 stored them in our proto-Vault, under the `secret/aws/proto/bosh`
@@ -1335,8 +1426,7 @@ deployment, and start configuring your backup jobs.
 
 ### How to use SHIELD
 
-Note: will add how to use SHIELD to backup and restore by using an example.
-
+TODO: Add how to use SHIELD to backup and restore by using an example.
 
 ## Bolo Monitoring
 
@@ -1390,7 +1480,7 @@ Created site aws (from template aws):
 2 directories, 10 files
 ```
 
-(Note: The site name can be different from aws.)
+**NOTE**: The site name can be different from aws.
 
 Now, we can create our environment. We call it proto since we use one bolo for one site for now.
 
@@ -1478,9 +1568,9 @@ ensuring that you get no errors (no output is a good sign).
 
 Then, you can deploy to your BOSH director via `make deploy`.
 
-Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Gnossis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
+Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Genesis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
 
-One way of doing it is using ngrok, go to [ngrok Downloads] [ngrok-download] page and download the right version to your `bolo/0` VM, unzip it and run `./ngrok http 80', it will output something like this:
+One way of doing it is using ngrok, go to [ngrok Downloads] [ngrok-download] page and download the right version to your `bolo/0` VM, unzip it and run `./ngrok http 80`, it will output something like this:
 
 ```
 ngrok by @inconshreveable                                                                                                                                                                   (Ctrl+C to quit)
@@ -1496,7 +1586,8 @@ Connections                   ttl     opn     rt1     rt5     p50     p90
                               0       0       0.00    0.00    0.00    0.00
 ```
 
-Copy the http or https link for forwarding and paste it into your browser, you will be able to visit the Gnossis web interface for bolo.
+Copy the http or https link for forwarding and paste it into your browser, you
+will be able to visit the Genesis web interface for bolo.
 
 Out of the box, the Bolo installation will begin monitoring itself
 for general host health (the `linux` collector), so you should
@@ -1511,9 +1602,9 @@ already there), add the `dbolo` template to all the jobs you want
 monitored, and configure `dbolo` to submit metrics to your
 `bolo/0` VM in the bolo deployment.
 
-(Note that this may require configuration of network ACLs,
-security groups, etc. -- if you experience issues with this step,
-you might want to start looking in those areas first)
+**NOTE**: This may require configuration of network ACLs, security groups, etc.
+If you experience issues with this step, you might want to start looking in
+those areas first.
 
 We will use shield as an example to show you how to configure Bolo Agents.
 
@@ -2922,7 +3013,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [infra-ips]:         https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
 [spruce-129]:        https://github.com/geofffranks/spruce/issues/129
 [slither]:           http://slither.io
-
+[troubleshooting]:   https://github.com/starkandwayne/codex/blob/master/troubleshooting.md
 
 [//]: # (Images, put in /images folder)
 
