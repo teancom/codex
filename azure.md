@@ -47,24 +47,24 @@ Welcome to the Stark & Wayne guide to deploying Cloud Foundry on Microsoft Azure
  make deploy
  ```
 
- Terraform will connect to your Azure account and build our Bastion host, a NAT box, subnets, and Security Groups. 
+ Terraform will connect to your Azure account and build our bastion host, a NAT box, subnets, and Security Groups. 
 
-### Accessing the Bastion host
+### Accessing the bastion host
  
- You now need to find the IP address of your Bastion host: </br>
+ You now need to find the IP address of your bastion host: </br>
  In your Azure dashboard, click Resource Groups on the left sidebar and then click on your resource group. 
  In the list of resources in this resource group, click `bastionvm`. 
  The IP address will appear under `Public IP address`. 
 
  The default username for this machine is `ops` and the default password is `c1oudc0w!`
 
- Access the Bastion host using these credentials via `ssh`. 
+ Access the bastion host using these credentials via `ssh`. 
 
-### Add SSH Keys to Bastion Host
+### Add SSH Keys to bastion Host
 TODO
  
 
-### Installing the Necessary Packages on the Bastion Host via Jumpbox
+### Installing the Necessary Packages on the bastion Host via Jumpbox
 
 ````
 jump@jumpbox:~$ sudo curl -o /usr/local/bin/jumpbox \

@@ -51,7 +51,7 @@ networks (i.e. cf-edge-0, cf-edge-1, cf-0, cf-1, etc.).
 | Site    | Subnet       | Subnet         | #    | Zone  | Name                 | Purpose                |
 | ------- | ------------ | -------------- | ---- | ----- | -------------------- | ---------------------- |
 | infra   | 10.4.0.0/20  |                | 4096 |       |                      |                        |
-|         |              | 10.4.0.0/24    |  254 |     1 | dmz                  | NAT / Bastion / etc.   |
+|         |              | 10.4.0.0/24    |  254 |     1 | dmz                  | NAT / bastion / etc.   |
 |         |              | 10.4.1.0/24    |  254 |     1 | global-infra-0       | Global Infrastructure  |
 |         |              | 10.4.2.0/24    |  254 |     2 | global-infra-1       | Global Infrastructure  |
 |         |              | 10.4.3.0/24    |  254 |     3 | global-infra-2       | Global Infrastructure  |

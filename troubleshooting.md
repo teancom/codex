@@ -6,11 +6,11 @@ in the main docs, then the answer will probably be here....ONWARDS!
 
 ### Bastion / Jumpbox
 
-When trying to `make all` to deploy the Bastion host. Terraform will connect to
+When trying to `make all` to deploy the bastion host. Terraform will connect to
 AWS, using your **Access Key ID** and **Secret Key ID**, then spin up all the
 things it needs.  When it finishes, you should be left with a bunch of subnets,
 configured network ACLs, security groups, routing tables, a NAT instance (for
-public internet connectivity) and a Bastion host.
+public internet connectivity) and a bastion host.
 
 If the `deploy` or `all` step fails with errors like:
 
@@ -27,7 +27,7 @@ replace the restricted zone.
 
 Chances are you did not run the `jumpbox` script, refer to [the Bastion/Jumpbox section][1]
 and make sure that you remain logged in as your Jumpbox user during the rest of
-the deployment process. Nothing is done from the default Bastion user.
+the deployment process. Nothing is done from the default bastion user.
 
 ### ProtoBosh & Proto-Vault
 
@@ -36,7 +36,7 @@ Error Deploying Proto-BOSH with Shield Agent Job
 ```
 
 If you see the error below, then you are running the scripts and everything from
-the Bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
+the bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
 to be nice and not throw errors at you.
 
 ```

@@ -33,7 +33,7 @@ are the per-site BOSH directors.
 
 Now it's time to setup the credentials.
 
-## Credential Checklist
+## Setup Credentials
 
 So you've got an AWS account right?  Cause otherwise let me interest you in
 another guide like our OpenStack, Azure or vSphere, etc.  j/k  
@@ -104,8 +104,14 @@ prefix certain things that Terraform creates in the AWS Virtual Private Cloud.
 When managing multiple VPC's this can help you to sub-select only the ones you're
 concerned about.
 
-The name is used with the Terraform configuration file `aws.tfvars`.  For example,
-a prefix of `snw` for Stark & Wayne would show up before VPC components like
+The VPC is configured in Terraform using the `aws_vpc_name` variable in the
+`aws.tfvars` file we're going to create soon.
+
+```
+aws_vpc_name = "snw"
+```
+
+The prefix of `snw` for Stark & Wayne would show up before VPC components like
 Subnets, Network ACLs and Security Groups:
 
 | Name            | ID              |
@@ -119,8 +125,8 @@ Subnets, Network ACLs and Security Groups:
 The **Access Key ID** / **Secret Key ID** are used to get access to the Amazon
 Web Services themselves.  In order to properly deploy on EC2 over SSH, we'll need
 to create an **EC2 Key Pair**.  This will be used as we bring up the initial NAT
-and Bastion Host instances. And is the SSH key you'll use to connect from your
-local machine to the Bastion.
+and bastion host instances. And is the SSH key you'll use to connect from your
+local machine to the bastion.
 
 **NOTE**: Make sure you are in the correct region (top-right corner of the black
 menu bar) when you create your **EC2 Key Pair**. Otherwise, it just plain won't
@@ -145,10 +151,10 @@ variable name.
 aws_key_file = /Users/<username>/.ssh/cf-deploy.pem
 ```
 
-## Create AWS Resources with Terraform
+## Using Terraform
 
 Once the requirements for AWS are met, we can put it all together and build out
-your shiny new Virtual Private Cloud (VPC), NAT server and Bastion Host. Change
+your shiny new Virtual Private Cloud (VPC), NAT server and bastion host. Change
 to the `terraform/aws` sub-directory of this repository before we begin.
 
 The configuration directly matches the [Network Plan][netplan] for the demo
@@ -158,28 +164,28 @@ or rewrites may need to be made.
 ### Variable File
 
 Create a `aws.tfvars` file with the following configurations (substituting your
-actual values), all the other configurations have default setting in the
-`terraform/aws/aws.tf` file.
+actual values) all the other configurations have default setting in the
+`CODEX_ROOT/terraform/aws/aws.tf` file.
 
 ```
 aws_access_key = "..."
 aws_secret_key = "..."
-aws_vpc_name   = "my-new-vpc"
-aws_key_name   = "bosh-ec2-key"
-aws_key_file   = "your ec2 private key path"
+aws_vpc_name   = "snw"
+aws_key_name   = "cf-deploy"
+aws_key_file   = "/Users/<username/.ssh/cf-deploy.pem"
 ```
 
 If you need to change the region or subnet, you can override the defaults
 by adding:
 
 ```
-aws_region = "us-east-1"
-network = "10.42"
+aws_region     = "us-east-1"
+network        = "10.42"
 ```
 
 You may change some default settings according to the real cases you are
 working on. For example, you can change `instance_type (default is t2.small) `
-in `aws.tf` to large size if the Bastion would require a high workload.
+in `aws.tf` to large size if the bastion would require a high workload.
 
 ### Production Considerations
 
@@ -216,42 +222,17 @@ $ make deploy
 Terraform will connect to AWS, using your **Access Key ID** and **Secret Key ID**,
 and spin up all the things it needs.  When it finishes, you should be left with
 a bunch of subnets, configured network ACLs, security groups, routing tables,
-a NAT instance (for public internet connectivity) and a Bastion host.
+a NAT instance (for public internet connectivity) and a bastion host.
 
 If you run into issues before this point refer to our [troubleshooting][troubleshooting]
 doc for help.
-
-### Connect to Bastion Host
-
-When all the Terraform output has scrolled by, at the very end it will give you
-the IP addresses you can use to connect:
-
-```
-box.bastion.public                      = 52.43.51.197
-box.nat.public                          = 52.41.225.204
-```
-
-You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
-[Generate EC2 Key Pair][#generate-ec2-key-pair] step before as your credential
-to connect.
-
-In forming the SSH connection command, use the `-i` flag to give SSH the path to
-the `IdentityFile`.  The default user on the Bastion server is `ubuntu`.  This
-will change in a little bit though when we create a new user, so don't get too
-compfy.
-
-```
-$ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
-```
-
-You're now ready to [Prepare the Bastion Host][prepare-bastion-host].
 
 ### Automate Build and Teardown
 
 When working with development environments only, there are options built into
 Terraform that will allow you to configure additional variables and then run a
 script that will automatically create or destroy the base Terraform environment
-for you (a NAT server and a Bastion Host).  This allows us to help reduce runtime
+for you (a NAT server and a bastion host).  This allows us to help reduce runtime
 cost.
 
 Setup the variables of what time (in military time) that you'd like the script's
@@ -271,12 +252,22 @@ you can then return to the `CODEX_ROOT/terraform/aws` folder and run:
 The first starts the background process that will be checking if it's time to
 begin the teardown.  The second will shutdown the background process.
 
-## Prepare Bastion Host
+## Bastion Host
 
-The bastion host is an access point virtual machine that your IaaS instrumentation layer (probably Terraform) should have provisioned for you.  As such, you probably will need to consult with your IaaS provider to figure out what IP address the bastion host can be accessed at.  For example, on AWS, find the `bastion` EC2 instance and note its Elastic IP address.
+For our purposes, the bastion host is the initial jumpbox server from which we'll
+begin to create our `infra` network.  From this entry-point we'll be creating a
+BOSH Director, installing services such as vault, shield, bolo and concourse.
 
-You're going to need to SSH into the bastion host (as the `ubuntu` user), and unfortunately, that is also provider-specific.  In AWS, you'll just SSH to the Elastic IP, using the private half of the EC2 keypair you generated.  Other IaaS's may have other
-requirements.
+These services will allow use to manage each of the environments that are built
+as a result of this first `infra` environment.
+
+![Bastion Host Overview][bastion_overview]
+
+### Public IP Address
+
+How do you get the IP address for it? there are two ways, terraform output and through the ec2 console.
+What are we going to do on it? all the things... need a diagram of
+How does it fit into the overall architecture of the system?
 
 ### Verify Keypair
 
@@ -301,6 +292,29 @@ $
 ```
 
 (on OS X you need to `brew install openssl` to get OpenSSL 1.0.x and use that version)
+
+### Connect to Bastion
+
+When all the Terraform output has scrolled by, at the very end it will give you
+the IP addresses you can use to connect:
+
+```
+box.bastion.public    = 52.43.51.197
+box.nat.public        = 52.41.225.204
+```
+
+You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
+[Generate EC2 Key Pair][#generate-ec2-key-pair] step before as your credential
+to connect.
+
+In forming the SSH connection command, use the `-i` flag to give SSH the path to
+the `IdentityFile`.  The default user on the bastion server is `ubuntu`.  This
+will change in a little bit though when we create a new user, so don't get too
+compfy.
+
+```
+$ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
+```
 
 ### Setup Jumpbox
 
@@ -1762,12 +1776,12 @@ Again starting with Meta lines:
 ---
 meta:
   availability_zone: "us-west-2a"   # Set this to match your first zone "aws_az1"
-  external_url: "https://ci.x.x.x.x.sslip.io"  # Set as Elastic IP address of the Bastion host to allow testing via SSH tunnel
+  external_url: "https://ci.x.x.x.x.sslip.io"  # Set as Elastic IP address of the bastion host to allow testing via SSH tunnel
   ssl_pem: ~
   #  ssl_pem: (( vault meta.vault_prefix "/web_ui:pem" ))
 ```
 
-Be sure to replace the x.x.x.x in the external_url above with the Elastic IP address of the Bastion host.
+Be sure to replace the x.x.x.x in the external_url above with the Elastic IP address of the bastion host.
 
 The `~` means we won't use SSL certs for now.  If you have proper certs or want to use self signed you can add them to vault under the `web_ui:pem` key
 
@@ -1832,8 +1846,8 @@ You can then run on a your local machine
 $ ssh -L 8080:10.4.1.51:80 user@ci.x.x.x.x.sslip.io -i path_to_your_private_key
 ```
 
-and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user` with the jumpbox username on the Bastion host
-and x.x.x.x with the IP address of the Bastion host.
+and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user` with the jumpbox username on the bastion host
+and x.x.x.x with the IP address of the bastion host.
 
 ### Setup Pipelines Using Concourse
 
@@ -3020,3 +3034,4 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [//]: # (Images, put in /images folder)
 
 [bosh_levels]:       images/levels_of_bosh.png "Levels of Bosh"
+[bastion_overview]:  images/bastion_host_overview.png "Bastion Host Overview"

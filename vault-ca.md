@@ -1,12 +1,12 @@
 ## Building with Local Certificate Authority services
 
-We are going to build root and an intermediate certificate 
+We are going to build root and an intermediate certificate
 authority services using vault running on the bastion host.
 
 (assumption you are logged onto one of the user bastion accounts)
 
 We do not want to lose our vault information so we are going to using
-a file backend.   We are also going to enable memory locking without 
+a file backend.   We are also going to enable memory locking without
 vault using root access.
 
 ```bash
@@ -39,10 +39,10 @@ Now we start up vault using the configuration we just created. I am leaving the 
 vault server -config=${HOME}/vault/vault.hcl
 ```
 
-Leave this session open and now open another session to the same user to 
+Leave this session open and now open another session to the same user to
 carry out the remaining operations.
 
-In the session we will initialize, unseal the vault and authorize. 
+In the session we will initialize, unseal the vault and authorize.
 Remember to save your unseal keys and root token somehow safe.
 
 ```bash
@@ -57,7 +57,7 @@ vault status
 ```
 
 Now we are going to setup the root CA service and certificate to have a ~ 10 year expiration.
-Feel free  read about the pki backend if you want at https://www.vaultproject.io/docs/secrets/pki/ if want to know what that **exclude_cn_from_sans** means. 
+Feel free  read about the pki backend if you want at https://www.vaultproject.io/docs/secrets/pki/ if want to know what that **exclude_cn_from_sans** means.
 
 ```bash
 vault mount -path=codex-root-ca -description="Codex Root CA" -max-lease-ttl=87648h pki
@@ -69,15 +69,15 @@ key_bits=4096 \
 exclude_cn_from_sans=true
 ```
 
-We created our certificate. Now read it back and lets setup the internal url 
-to use this CA service. You will need the internal ip address of the bastion hoset.
+We created our certificate. Now read it back and lets setup the internal url
+to use this CA service. You will need the internal ip address of the bastion host.
 
 ```bash
 curl -s http://localhost:8200/v1/codex-root-ca/ca/pem | openssl x509 -text
 vault write codex-root-ca/config/urls issuing_certificates="http://10.30.0.211:8200/v1/codex-root-ca"
 ```
 
-### Build the Operations Intermediate Certificate Authority 
+### Build the Operations Intermediate Certificate Authority
 
 We are going to create the operations intermidiate certificate authority with a maximum of time live of approximately 5 years.  The difference will create a key and a certificate signing request (CSR).  Then we will sign CSR using or Root certificate service.  The signed certificate will then be stored in the our operations certificate authority vault
 
@@ -119,7 +119,7 @@ crl_distribution_points="http://10.30.0.211:8200/v1/codex-ops-ca/crl"
 
 ## Defining Certificate Generation Policies  (Roles)
 
-Now we define types of cerficates we want to issue.  A policy defines 
+Now we define types of cerficates we want to issue.  A policy defines
 properties for the certificate that will be generated.
 Vaults calls these policies roles.
 

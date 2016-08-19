@@ -292,7 +292,7 @@ output "openstack_networking_network_v2.external.dev-cf-runtime-2.subnet" {
 resource "openstack_blockstorage_volume_v2" "volume_bastion" {
   region = "RegionOne"
   name = "volume_bastion"
-  description = "Bastion Volume"
+  description = "bastion Volume"
   size = 2
 }
 
