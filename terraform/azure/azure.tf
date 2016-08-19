@@ -361,8 +361,8 @@ resource "azurerm_virtual_machine" "bastion" {
 
     os_profile {
         computer_name = "hostname"
-        admin_username = "ops"
-        admin_password = "c1oudc0w"
+        admin_username = "default"
+        admin_password = "c1oudc0w!"
     }
 
     os_profile_linux_config {

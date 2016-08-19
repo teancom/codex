@@ -2,145 +2,69 @@
 
 Welcome to the Stark & Wayne guide to deploying Cloud Foundry on Microsoft Azure.
 
-## Initial Setup
+## Things You'll Need
 
-Install Azure CLI under Node.js 4.x
+ 1. Your Azure Subscription ID
+ 2. Your Azure Client ID
+ 3. Your Azure Client Secret
+ 4. Your Azure Tenant ID
 
-````
-npm install azure-cli -g
-````
+ To find these credentials, follow closely the Creating Credentials section here: https://www.terraform.io/docs/providers/azurerm/index.html
 
-Then you can log in to set up the Jumpbox
+ One last thing you'll need:
+ 5. A name for your Azure Resource Group
 
-````
-[ruby-2.2.3] Homer:Ford krutten$ azure login
-Microsoft Azure CLI would like to collect data about how users use CLI
-commands and some problems they encounter.  Microsoft uses this information
-to improve our CLI commands.  Participation is voluntary and when you
-choose to participate your device automatically sends information to
-Microsoft about how you use Azure CLI.
+## Creating an Azure Cloud via Terraform
 
-If you choose to participate, you can stop at any time later by using Azure
-CLI as follows:
-1.  Use the azure telemetry command to turn the feature Off.
-To disable data collection, execute: azure telemetry --disable
+ In the terraform/azure directory of this repo, create a file called `azure.tfvars` and enter the above values in the following format:
 
-If you choose to not participate, you can enable at any time later by using
-Azure CLI as follows:
-1.  Use the azure telemetry command to turn the feature On.
-To enable data collection, execute: azure telemetry --enable
+ ```
+ subscription_id = "..."
+ client_id = "..."
+ client_secret = "..."
+ tenant_id = "..."
+ resource_group_name = "..."
+ ```
+ If you need to change the region of your Azure cloud or the network prefix, you can override the defaults by adding:
 
-Select y to enable data collection :(y/n) n
+ ```
+ aws_region = "East US"
+ network = "10.39"
+ ```
 
-You choose not to participate in Microsoft Azure CLI data collection.
+ See https://azure.microsoft.com/en-us/regions/ for a list of available Azure regions. 
 
+ As a quick pre-flight check, run `make manifest` to compile your Terraform plan and suss out any issues with naming, missing variables, configuration, etc.:
 
-info:    Executing command login
-|info:    To sign in, use a web browser to open the page https://aka.ms/devicelogin. Enter the code EKJJYNXPU to authenticate.
--info:    Added subscription Free Trial
-info:    Setting subscription "Free Trial" as default
-+
-info:    login command OK
-[ruby-2.2.3] Homer:Ford krutten$
-````
+ ```
+ make manifest
+ ```
 
-Most of the commands required need you to be in `Azure CLI Resource Management` mode.
+ If everything worked out you should se a summary of the plan.  If this is the first time you've done this, all of your changes should be additions.  
 
->The Azure Resource Manager mode and Azure Service Management mode are mutually exclusive. That is, resources created in one mode cannot be managed from the other mode.
+ Now we pull the trigger: 
+ ```
+ make deploy
+ ```
 
-````
-[ruby-2.2.3] Homer:Ford krutten$ azure config mode arm
-info:    Executing command config mode
-info:    New mode is arm
-info:    config mode command OK
-[ruby-2.2.3] Homer:Ford krutten$
-````
+ Terraform will connect to your Azure account and build our bastion host, a NAT box, subnets, and Security Groups. 
 
-## Setting up an Azure VPC/Terraforming
+### Accessing the bastion host
+ 
+ You now need to find the IP address of your bastion host: </br>
+ In your Azure dashboard, click Resource Groups on the left sidebar and then click on your resource group. 
+ In the list of resources in this resource group, click `bastionvm`. 
+ The IP address will appear under `Public IP address`. 
 
-TBD
+ The default username for this machine is `ops` and the default password is `c1oudc0w!`
 
-### Generate an EC2 Key Pair
+ Access the bastion host using these credentials via `ssh`. 
 
-## Booting a Jumpbox
-You can boot the default Ubuntu 14.04 with
+### Add SSH Keys to bastion Host
+TODO
+ 
 
-````
-[ruby-2.2.3] Homer:Ford krutten$ azure vm quick-create -M ~/.ssh/id_azure.pub -Q UbuntuLTS
-info:    Executing command vm quick-create
-Resource group name:  proto
-Virtual machine name:  jumpbox
-Location name:  westus
-Operating system Type [Windows, Linux]:  linux
-User name:  jump
-+ Listing virtual machine sizes available in the location "westus"
-+ Looking up the VM "jumpbox"
-info:    Verifying the public key SSH file: /Users/krutten/.ssh/id_azure.pub
-info:    Using the VM Size "Standard_DS1"
-info:    The [OS, Data] Disk or image configuration requires storage account
-+ Looking up the storage account cli26496493432090414049
-+ Looking up the NIC "jumpb-westu-2649649343-nic"
-info:    Found an existing NIC "jumpb-westu-2649649343-nic"
-info:    Found an IP configuration with virtual network subnet id "/subscriptions/13c77c2c-b99d-4eba-a00c-fe5425d760d6/resourceGroups/proto/providers/Microsoft.Network/virtualNetworks/jumpb-westu-2649649343-vnet/subnets/jumpb-westu-2649649343-snet" in the NIC "jumpb-westu-2649649343-nic"
-info:    This NIC IP configuration is already configured with the provided public ip "jumpb-westu-2649649343-pip"
-+ Looking up the storage account clisto1457861882jumpbox
-+ Creating VM "jumpbox"
-+ Looking up the VM "jumpbox"
-+ Looking up the NIC "jumpb-westu-2649649343-nic"
-+ Looking up the public ip "jumpb-westu-2649649343-pip"
-data:    Id                              :/subscriptions/13c77c2c-b99d-4eba-a00c-fe5425d760d6/resourceGroups/proto/providers/Microsoft.Compute/virtualMachines/jumpbox
-data:    ProvisioningState               :Succeeded
-data:    Name                            :jumpbox
-data:    Location                        :westus
-data:    Type                            :Microsoft.Compute/virtualMachines
-data:
-data:    Hardware Profile:
-data:      Size                          :Standard_DS1
-data:
-data:    Storage Profile:
-data:      Image reference:
-data:        Publisher                   :Canonical
-data:        Offer                       :UbuntuServer
-data:        Sku                         :14.04.4-LTS
-data:        Version                     :latest
-data:
-data:      OS Disk:
-data:        OSType                      :Linux
-data:        Name                        :cli9a45ea28ea164df0-os-1468608733494
-data:        Caching                     :ReadWrite
-data:        CreateOption                :FromImage
-data:        Vhd:
-data:          Uri                       :https://cli26496493432090414049.blob.core.windows.net/vhds/cli9a45ea28ea164df0-os-1468608733494.vhd
-data:
-data:    OS Profile:
-data:      Computer Name                 :jumpbox
-data:      User Name                     :jump
-data:      Linux Configuration:
-data:        Disable Password Auth       :true
-data:
-data:    Network Profile:
-data:      Network Interfaces:
-data:        Network Interface #1:
-data:          Primary                   :true
-data:          MAC Address               :00-0D-3A-34-4E-29
-data:          Provisioning State        :Succeeded
-data:          Name                      :jumpb-westu-2649649343-nic
-data:          Location                  :westus
-data:            Public IP address       :104.40.73.246
-data:            FQDN                    :jumpb-westu-2649649343-pip.westus.cloudapp.azure.com
-data:
-data:    Diagnostics Profile:
-data:      BootDiagnostics Enabled       :true
-data:      BootDiagnostics StorageUri    :https://clisto1457861882jumpbox.blob.core.windows.net/
-data:
-data:      Diagnostics Instance View:
-info:    vm quick-create command OK
-[ruby-2.2.3] Homer:Ford krutten$
-````
-
-At this time Ubuntu 16.04 is not on the list of [Available Images](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-ps-findimage/)
-
-### Installing the Packages
+### Installing the Necessary Packages on the bastion Host via Jumpbox
 
 ````
 jump@jumpbox:~$ sudo curl -o /usr/local/bin/jumpbox \
@@ -242,17 +166,4 @@ sent invalidate(group) request, exiting
 
    ALL DONE
 jump@jumpbox:~$
-````
-
-### Quick Recap
-
-````
-azure login
-azure config mode arm
-
-azure provider register Microsoft.Storage
-azure provider register Microsoft.Network
-azure provider register Microsoft.Compute
-
-azure vm quick-create -M ~/.ssh/azure_id_rsa.pub -Q UbuntuLTS
 ````
