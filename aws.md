@@ -286,7 +286,7 @@ the bastion.  The _Public IP_ is an attribute in the _Decription_ tab.
 ### Connect to Bastion
 
 You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
-[Generate EC2 Key Pair][#generate-ec2-key-pair] step before as your credential
+[Generate EC2 Key Pair][aws.md#generate-ec2-key-pair] step before as your credential
 to connect.
 
 In forming the SSH connection command, use the `-i` flag to give SSH the path to
@@ -295,7 +295,7 @@ will change in a little bit though when we create a new user, so don't get too
 compfy.
 
 ```
-$ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
+$ ssh -i ~/.ssh/cf-deploy.pem ubuntu@52.43.51.197
 ```
 
 Problems connecting?  [Verify your SSH fingerprint][verify_ssh] in the
