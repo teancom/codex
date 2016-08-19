@@ -1,4 +1,4 @@
-# Part I - Deploying on AWS
+# Part I - AWS Guide
 
 ## Overview
 
@@ -151,7 +151,7 @@ variable name.
 aws_key_file = /Users/<username>/.ssh/cf-deploy.pem
 ```
 
-## Using Terraform
+## Use Terraform
 
 Once the requirements for AWS are met, we can put it all together and build out
 your shiny new Virtual Private Cloud (VPC), NAT server and bastion host. Change
@@ -304,18 +304,29 @@ troubleshooting doc.
 ### Add User
 
 Once on the bastion host, you'll want to use the `jumpbox` script, which has
-been installed automatically by the Terraform configuration. This script
-installs some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of
- which will be important when we start using the bastion host to do deployments.
+been installed automatically by the Terraform configuration. [This script installs][jumpbox]
+some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which
+will be important when we start using the bastion host to do deployments.
 
-SSH into your bastion host and check if the `jumpbox` utility is installed:
+**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.
+The _BOSH release_ can be used as part of the deployment.  And the script gets
+run directly on the bastion host.
+
+Once connected to the bastion, check if the `jumpbox` utility is installed.
 
 ```
-$ jumpbox
+$ jumpbox -v
 ```
 
-Next up, you're going to want to provision some normal user accounts on the
-bastion host, so that operations staff can login via named accounts:
+In order to have the dependencies for the `bosh_cli` we need to create a user.
+Also a convenience method at the end will prompt for git configuration that will
+be useful when we are generating Genesis templates later.
+
+Using named accounts provides auditing (via the `sudo` logs), and isolation (people
+won't step on each others toes on the filesystem) and customization (everyone
+gets to set their own prompt / shell / $EDITOR / etc.).
+
+Let's add a user with `jumpbox useradd`:
 
 ```
 $ jumpbox useradd
@@ -325,14 +336,27 @@ sudo password for ubuntu:
 You should run `jumpbox user` now, as juser:
   sudo -iu juser
   jumpbox user
-
-$ sudo -iu juser
-$ jumpbox user
-<snip>
 ```
 
-We also want to use our own ssh key to login to the bastion host, so we will
-copy our desktop/laptop public ssh keypair into the user's authorized keys:
+### Setup User
+
+After you've added the user, **be sure you follow up and setup the user** before
+going any further.
+
+Use the `sudo -iu juser` command to change to the user.  And run `jumpbox user`
+to install all dependent packages.
+
+```
+$ sudo -iu juser
+$ jumpbox user
+```
+
+### Add Authorized Key
+
+While logged in as your new user, add your local machine's public key that's
+already in your key chain.  (Ex. ~/.ssh/id_rsa.pub)
+
+We're going to copy it to new remote users's `~/.ssh/authorized_keys` file.
 
 ```
 $ mkdir ~/.ssh
@@ -341,25 +365,33 @@ $ chmod 600 ~/.ssh/authorized_keys
 $ logout
 ```
 
-Using named accounts provides auditing (via the `sudo` logs), isolation (people
-won't step on each others toes on the filesystem) and customization (everyone
-gets to set their own prompt / shell / $EDITOR / etc.)
+### SSH Config
 
-Once you're done setting up your users, you should log in (via SSH) as your
-personal account and make sure everything is working.
+On your local computer, setup an entry in the `~/.ssh/config` file for your
+bastion host.  Substituting the correct IP and path to `*.pem` file.
 
-You can verify what's currently installed on the bastion via:
+```
+Host bastion
+  Hostname 52.43.51.197
+  User juser
+```
+
+### Test Login
+
+After you've logged in as `ubuntu` once, created your user, logged out and
+configured your SSH config, you'll be ready to try to connect via the `Host`
+alias.
+
+```
+$ ssh bastion
+```
+
+If you can login and run `jumpbox` and everything returns green, everything's
+ready to continue.
 
 ```
 $ jumpbox
 ```
-
-For more information, check out [the jumpbox repo][jumpbox] on Github.
-
-**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.
-The latter provisions the jumpbox machine as part of the deployment, provides
-requisite packages, and creates user accounts.  The former is really only useful
-for setting up / updating the bastion host.
 
 ## A Land Before Time
 
