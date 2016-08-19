@@ -256,52 +256,34 @@ begin the teardown.  The second will shutdown the background process.
 
 For our purposes, the bastion host is the initial jumpbox server from which we'll
 begin to create our `infra` network.  From this entry-point we'll be creating a
-BOSH Director, installing services such as vault, shield, bolo and concourse.
+BOSH Director, installing software such as vault, shield, bolo and concourse.
 
-These services will allow use to manage each of the environments that are built
-as a result of this first `infra` environment.
+This software allows the advanced deployment and management of each environment
+created after the first `infra` environment.
+
+We'll be covering each of these steps in greater detail as we go along, by the time
+you're done working on the bastion server, you'll have installed each of the
+following in the numbered order:
 
 ![Bastion Host Overview][bastion_overview]
 
 ### Public IP Address
 
-How do you get the IP address for it? there are two ways, terraform output and through the ec2 console.
-What are we going to do on it? all the things... need a diagram of
-How does it fit into the overall architecture of the system?
+Before we can begin to install software, we need to connect to the server.  There
+are a couple of ways to get the IP address.
 
-### Verify Keypair
-
-You can check your SSH keypair by comparing the Amazon fingerprints.
-
-On the Web UI, you can check the uploaded key on the [key page][amazon-keys].
-
-If you prefer the Amazon CLI, you can run (replacing bosh with your key name):
-
-```
-$ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep 'KeyFingerprint'|awk '{ print $2 }' -
-"05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
-$
-```
-
-You check your private key you are using with:
-
-```
-$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
-(stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
-$
-```
-
-(on OS X you need to `brew install openssl` to get OpenSSL 1.0.x and use that version)
-
-### Connect to Bastion
-
-When all the Terraform output has scrolled by, at the very end it will give you
-the IP addresses you can use to connect:
+* At the end of the Terraform `make deploy` output the `bastion` address is displayed.
 
 ```
 box.bastion.public    = 52.43.51.197
 box.nat.public        = 52.41.225.204
 ```
+
+* In the AWS Console, go to Services > EC2.  In the dashboard each of the
+**Resources** are listed.  Find the _Running Instances_ click on it and locate
+the bastion.  The _Public IP_ is an attribute in the _Decription_ tab.
+
+### Connect to Bastion
 
 You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
 [Generate EC2 Key Pair][#generate-ec2-key-pair] step before as your credential
@@ -316,9 +298,15 @@ compfy.
 $ ssh -i ~/.ssh/cf-deploy.epm ubuntu@52.43.51.197
 ```
 
-### Setup Jumpbox
+Problems connecting?  [Verify your SSH fingerprint][verify_ssh] in the
+troubleshooting doc.
 
-Once on the bastion host, you'll want to use the `jumpbox` script, which has been installed automatically by the Terraform configuration. This script installs some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which will be important when we start using the bastion host to do deployments.
+### Add User
+
+Once on the bastion host, you'll want to use the `jumpbox` script, which has
+been installed automatically by the Terraform configuration. This script
+installs some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of
+ which will be important when we start using the bastion host to do deployments.
 
 SSH into your bastion host and check if the `jumpbox` utility is installed:
 
@@ -326,7 +314,8 @@ SSH into your bastion host and check if the `jumpbox` utility is installed:
 $ jumpbox
 ```
 
-Next up, you're going to want to provision some normal user accounts on the bastion host, so that operations staff can login via named accounts:
+Next up, you're going to want to provision some normal user accounts on the
+bastion host, so that operations staff can login via named accounts:
 
 ```
 $ jumpbox useradd
@@ -342,7 +331,8 @@ $ jumpbox user
 <snip>
 ```
 
-We also want to use our own ssh key to login to the bastion host, so we will copy our desktop/laptop public ssh keypair into the user's authorized keys:
+We also want to use our own ssh key to login to the bastion host, so we will
+copy our desktop/laptop public ssh keypair into the user's authorized keys:
 
 ```
 $ mkdir ~/.ssh
@@ -351,9 +341,12 @@ $ chmod 600 ~/.ssh/authorized_keys
 $ logout
 ```
 
-Using named accounts provides auditing (via the `sudo` logs), isolation (people won't step on each others toes on the filesystem) and customization (everyone gets to set their own prompt / shell / $EDITOR / etc.)
+Using named accounts provides auditing (via the `sudo` logs), isolation (people
+won't step on each others toes on the filesystem) and customization (everyone
+gets to set their own prompt / shell / $EDITOR / etc.)
 
-Once you're done setting up your users, you should log in (via SSH) as your personal account and make sure everything is working.
+Once you're done setting up your users, you should log in (via SSH) as your
+personal account and make sure everything is working.
 
 You can verify what's currently installed on the bastion via:
 
@@ -363,7 +356,10 @@ $ jumpbox
 
 For more information, check out [the jumpbox repo][jumpbox] on Github.
 
-**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.  The latter provisions the jumpbox machine as part of the deployment, provides requisite packages, and creates user accounts.  The former is really only useful for setting up / updating the bastion host.
+**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.
+The latter provisions the jumpbox machine as part of the deployment, provides
+requisite packages, and creates user accounts.  The former is really only useful
+for setting up / updating the bastion host.
 
 ## A Land Before Time
 
@@ -3007,14 +3003,12 @@ correct ELB for this environment, and that the ELB has the correct SSL certifica
 
 Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
 
-
 ### Next Steps
 
 Lather, rinse, repeat for all additional environments (dev, prod, loadtest, whatever's applicable to the client).
 
 [//]: # (Links, please keep in alphabetical order)
 
-[amazon-keys]:       https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName
 [amazon-region-doc]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html
 [aws]:               https://signin.aws.amazon.com/console
 [aws-subnets]:       http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
@@ -3030,6 +3024,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [spruce-129]:        https://github.com/geofffranks/spruce/issues/129
 [slither]:           http://slither.io
 [troubleshooting]:   https://github.com/starkandwayne/codex/blob/master/troubleshooting.md
+[verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 
 [//]: # (Images, put in /images folder)
 

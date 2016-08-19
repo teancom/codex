@@ -56,4 +56,32 @@ to be nice and not throw errors at you.
     Makefile:25: recipe for target 'deploy' failed
 ```
 
-[1]: https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
+## Bastion Host
+
+### Verify Keypair
+
+There are two ways to check the SSH Key Pair. Either in the AWS Web Console or
+with the AWS CLI.
+
+* Check the Fingerprint here on the AWS Web Console [key page][amazon-keys].
+
+* Use AWC CLI, ensure parameters like `--region`, `--key-name` (referring to SSH
+key pair) are correct:
+
+```
+$ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep 'KeyFingerprint'|awk '{ print $2 }' -
+"05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
+```
+
+Once you have the SSH Key Pair fingerprint from AWS, you can then use `openssl`
+to display the fingerprint of your local `*.pem` SSH key pair file.
+
+```
+$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
+(stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
+```
+
+NOTE: On macOS you need to `brew install openssl` to get OpenSSL 1.0.x.
+
+[1]:            https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
+[amazon-keys]:  https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName
