@@ -316,15 +316,16 @@ Once connected to the bastion, check if the `jumpbox` utility is installed.
 
 ```
 $ jumpbox -v
+jumpbox v49
 ```
 
 In order to have the dependencies for the `bosh_cli` we need to create a user.
 Also a convenience method at the end will prompt for git configuration that will
 be useful when we are generating Genesis templates later.
 
-Using named accounts provides auditing (via the `sudo` logs), and isolation (people
-won't step on each others toes on the filesystem) and customization (everyone
-gets to set their own prompt / shell / $EDITOR / etc.).
+Also, ussing named accounts provides auditing (via the `sudo` logs), and
+isolation (people won't step on each others toes on the filesystem) and
+customization (everyone gets to set their own prompt / shell / $EDITOR / etc.).
 
 Let's add a user with `jumpbox useradd`:
 
@@ -354,7 +355,7 @@ $ jumpbox user
 ### Add Authorized Key
 
 While logged in as your new user, add your local machine's public key that's
-already in your key chain.  (Ex. ~/.ssh/id_rsa.pub)
+already in your key chain.  (Ex. `~/.ssh/id_rsa.pub`)
 
 We're going to copy it to new remote users's `~/.ssh/authorized_keys` file.
 
