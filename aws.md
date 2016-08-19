@@ -323,9 +323,9 @@ In order to have the dependencies for the `bosh_cli` we need to create a user.
 Also a convenience method at the end will prompt for git configuration that will
 be useful when we are generating Genesis templates later.
 
-Also, ussing named accounts provides auditing (via the `sudo` logs), and
+Also, using named accounts provides auditing (via the `sudo` logs), and
 isolation (people won't step on each others toes on the filesystem) and
-customization (everyone gets to set their own prompt / shell / $EDITOR / etc.).
+customization (everyone gets to set their own prompt / shell / `$EDITOR`).
 
 Let's add a user with `jumpbox useradd`:
 
@@ -362,6 +362,7 @@ We're going to copy it to new remote users's `~/.ssh/authorized_keys` file.
 ```
 $ mkdir ~/.ssh
 $ vim ~/.ssh/authorized_keys
+  <copy in your key, save and exit>
 $ chmod 600 ~/.ssh/authorized_keys
 $ logout
 ```
@@ -3073,7 +3074,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [infra-ips]:         https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
 [spruce-129]:        https://github.com/geofffranks/spruce/issues/129
 [slither]:           http://slither.io
-[troubleshooting]:   https://github.com/starkandwayne/codex/blob/master/troubleshooting.md
+[troubleshooting]:   troubleshooting.md
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 
 [//]: # (Images, put in /images folder)
