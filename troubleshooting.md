@@ -6,11 +6,11 @@ in the main docs, then the answer will probably be here....ONWARDS!
 
 ### Bastion / Jumpbox
 
-When trying to `make all` to deploy the Bastion host. Terraform will connect to
+When trying to `make all` to deploy the bastion host. Terraform will connect to
 AWS, using your **Access Key ID** and **Secret Key ID**, then spin up all the
 things it needs.  When it finishes, you should be left with a bunch of subnets,
 configured network ACLs, security groups, routing tables, a NAT instance (for
-public internet connectivity) and a Bastion host.
+public internet connectivity) and a bastion host.
 
 If the `deploy` or `all` step fails with errors like:
 
@@ -27,7 +27,7 @@ replace the restricted zone.
 
 Chances are you did not run the `jumpbox` script, refer to [the Bastion/Jumpbox section][1]
 and make sure that you remain logged in as your Jumpbox user during the rest of
-the deployment process. Nothing is done from the default Bastion user.
+the deployment process. Nothing is done from the default bastion user.
 
 ### ProtoBosh & Proto-Vault
 
@@ -36,7 +36,7 @@ Error Deploying Proto-BOSH with Shield Agent Job
 ```
 
 If you see the error below, then you are running the scripts and everything from
-the Bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
+the bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
 to be nice and not throw errors at you.
 
 ```
@@ -56,4 +56,32 @@ to be nice and not throw errors at you.
     Makefile:25: recipe for target 'deploy' failed
 ```
 
-[1]: https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
+## Bastion Host
+
+### Verify Keypair
+
+There are two ways to check the SSH Key Pair. Either in the AWS Web Console or
+with the AWS CLI.
+
+* Check the Fingerprint here on the AWS Web Console [key page][amazon-keys].
+
+* Use AWC CLI, ensure parameters like `--region`, `--key-name` (referring to SSH
+key pair) are correct:
+
+```
+$ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep 'KeyFingerprint'|awk '{ print $2 }' -
+"05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
+```
+
+Once you have the SSH Key Pair fingerprint from AWS, you can then use `openssl`
+to display the fingerprint of your local `*.pem` SSH key pair file.
+
+```
+$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
+(stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
+```
+
+NOTE: On macOS you need to `brew install openssl` to get OpenSSL 1.0.x.
+
+[1]:            https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
+[amazon-keys]:  https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName
