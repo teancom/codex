@@ -392,6 +392,23 @@ ready to continue.
 
 ```
 $ jumpbox
+
+<snip>
+
+>> Checking jumpbox installation
+jumpbox installed - jumpbox v49
+ruby installed - ruby 2.2.4p230 (2015-12-16 revision 53155) [x86_64-linux]
+rvm installed - rvm 1.27.0 (latest) by Wayne E. Seguin <wayneeseguin@gmail.com>, Michal Papis <mpapis@gmail.com> [https://rvm.io/]
+bosh installed - BOSH 1.3184.1.0
+bosh-init installed - version 0.0.81-775439c-2015-12-09T00:36:03Z
+jq installed - jq-1.5
+spruce installed - spruce - Version 1.7.0
+safe installed - safe v0.0.23
+vault installed - Vault v0.6.0
+genesis installed - genesis 1.5.2 (61864a21370c)
+
+git user.name  is 'Joe User'
+git user.email is 'juser@starkandwayne.com'
 ```
 
 ## A Land Before Time
