@@ -286,7 +286,7 @@ the bastion.  The _Public IP_ is an attribute in the _Decription_ tab.
 ### Connect to Bastion
 
 You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
-[Generate EC2 Key Pair][aws.md#generate-ec2-key-pair] step before as your credential
+[Generate EC2 Key Pair](aws.md#generate-ec2-key-pair) step before as your credential
 to connect.
 
 In forming the SSH connection command, use the `-i` flag to give SSH the path to
