@@ -418,9 +418,12 @@ So far you've Setup Credentials, Used Terraform to construct the IaaS Components
 and Configured a Bastion Host.  We're ready now to setup a BOSH Director on the
 bastion.  
 
-We are going to deploy it with `bosh-init`.  Once this BOSH Director is up it
-enables us to deploy environment-specific BOSH directors via this _proto_BOSH_
-server with the `bosh_cli`.
+We are going to deploy it with `bosh-init`.  Once this BOSH Director is installed,
+it will enable us to deploy however many environment-specific BOSH directors
+via the newly created _proto-BOSH_ server with the `bosh_cli`.  
+
+This model gives BOSH operators all the benefits of BOSH, applied to the
+director: Monitoring, Caching, Recovery, Lifecycle, etc.
 
 ### Proto-Vault
 
@@ -433,10 +436,10 @@ git repository somewhere.
 
 However, we are starting from almost nothing, so we don't have the luxury of
 using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded
-Vault server instance _on the bastion host_, and then migrate the credentials to
+Vault server instance **on the bastion host**, and then migrate the credentials to
 the real Vault later.
 
-This we call a _proto_Vault_.  Because it precedes the _proto_BOSH_ and Vault
+This we call a _proto-Vault_.  Because it precedes the _proto-BOSH_ and Vault
 deploy we'll be setting up later.
 
 The `jumpbox` script that we ran as part of setting up the bastion host installs
@@ -445,7 +448,8 @@ interacting with Vault, but also the Vault server daemon itself.
 
 #### Start Server
 
-To start the _proto_Vault_, run the `vault server` with the `-dev` flag:
+Were going to start the server and do an overview of what the output means.  To
+start the _proto-Vault_, run the `vault server` with the `-dev` flag.
 
 ```
 $ vault server -dev
@@ -455,48 +459,32 @@ In this mode, Vault is completely in-memory and unsealed.
 Vault is configured to only have a single unseal key. The root
 token has already been authenticated with the CLI, so you can
 immediately begin using the Vault CLI.
+```
 
+A vault being unsealed sounds like a bad thing right?  But if you think about it
+like at a bank, you can't get to what's in a vault unless it's unsealed.
+
+Next we see the address and port.  We'll use that in a bit to set CLI target with
+`safe`.
+
+
+```
 The only step you need to take is to set the following
 environment variables:
 
     export VAULT_ADDR='http://127.0.0.1:8200'
+```
 
+And in dev mode, `vault server` gives the user the tools needed to authenticate.
+We'll be using these soon when we log in.
+
+```
 The unseal key and root token are reproduced below in case you
 want to seal/unseal the Vault or play with authentication.
 
 Unseal Key:
 781d77046dcbcf77d1423623550d28f152d9b419e09df0c66b553e1239843d89
 Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
-
-==> Vault server configuration:
-
-         Log Level: info
-             Mlock: supported: true, enabled: false
-           Backend: inmem
-        Listener 1: tcp (addr: "127.0.0.1:8200", tls: "disabled")
-           Version: Vault v0.5.0
-
-==> Vault server started! Log data will stream in below:
-
-2016/06/28 13:24:54 [INFO] core: security barrier initialized (shares: 1, threshold 1)
-2016/06/28 13:24:54 [INFO] core: post-unseal setup starting
-2016/06/28 13:24:54 [INFO] core: mounted backend of type generic at secret/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type cubbyhole at cubbyhole/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type system at sys/
-2016/06/28 13:24:54 [INFO] core: post-unseal setup complete
-2016/06/28 13:24:54 [INFO] core: root token generated
-2016/06/28 13:24:54 [INFO] core: pre-seal teardown starting
-2016/06/28 13:24:54 [INFO] rollback: starting rollback manager
-2016/06/28 13:24:54 [INFO] rollback: stopping rollback manager
-2016/06/28 13:24:54 [INFO] core: pre-seal teardown complete
-2016/06/28 13:24:54 [INFO] core: vault is unsealed
-2016/06/28 13:24:54 [INFO] core: post-unseal setup starting
-2016/06/28 13:24:54 [INFO] core: mounted backend of type generic at secret/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type cubbyhole at cubbyhole/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type system at sys/
-2016/06/28 13:24:54 [INFO] core: post-unseal setup complete
-2016/06/28 13:24:54 [INFO] rollback: starting rollback manager
-...
 ```
 
 **NOTE**: You probably want to run this in a `tmux` session, in the foreground.
@@ -504,9 +492,9 @@ Running it in the background sounds like a fine idea, except that Vault is prett
 chatty, and we can't redirect the output to `/dev/null` because we need to see
 that root token.
 
-#### Target Proto Vault
+#### Target Proto-Vault
 
-With our proto-Vault up and spinning, we can target it:
+With our _proto-Vault_ up and spinning, we can target it with `safe`.
 
 ```
 $ safe target proto http://127.0.0.1:8200
@@ -514,7 +502,7 @@ Now targeting proto at http://127.0.0.1:8200
 
 $ safe targets
 
- proto  http://127.0.0.1:8200
+  proto  http://127.0.0.1:8200
 
 $ safe auth token
 Authenticating against proto at http://127.0.0.1:8200
@@ -526,10 +514,9 @@ knock: knock
 $ safe read secret/handshake
 --- # secret/handshake
 knock: knock
-
 ```
 
-All set!  Now we can deploy our proto-BOSH.
+All set!  Now we can now build our deploy for the _proto-BOSH_.
 
 ### Proto-BOSH
 
@@ -629,7 +616,7 @@ Created environment aws/proto:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and
-stored them in our proto-Vault, under the `secret/aws/proto/bosh`
+stored them in our _proto-Vault_, under the `secret/aws/proto/bosh`
 subtree.  Later, we'll migrate this subtree over to our real
 Vault, once it is up and spinning.
 
@@ -727,7 +714,8 @@ make: *** [manifest] Error 5
 ```
 
 Better. Let's configure our `cloud_provider` for AWS, using our EC2
-keypair. We need copy our EC2 private key to bastion host and path to the key for `private_key` entry in the following `properties.yml`.
+key pair. We need copy our EC2 private key to bastion host and path to the key
+for `private_key` entry in the following `properties.yml`.
 
 ```
 $ cat properties.yml
@@ -763,17 +751,17 @@ Excellent.  We're down to two issues.
 
 We haven't deployed a SHIELD yet, so it may seem a bit odd that
 we're being asked for an SSH public key.  When we deploy our
-proto-BOSH via `bosh-init`, we're going to spend a fair chunk of
+_proto-BOSH_ via `bosh-init`, we're going to spend a fair chunk of
 time compiling packages on the bastion host before we can actually
 create and update the director VM.  `bosh-init` will delete the
 director VM before it starts this compilation phase, so we will be
 unable to do _anything_ while `bosh-init` is hard at work.  The
 whole process takes about 30 minutes, so we want to minimize the
-number of times we have to re-deploy proto-BOSH.  By specifying
+number of times we have to re-deploy _proto-BOSH_.  By specifying
 the SHIELD agent configuration up-front, we skip a re-deploy after
 SHIELD itself is up.
 
-Let's leverage our Vault to create the SSH keypair for BOSH.
+Let's leverage our Vault to create the SSH key pair for BOSH.
 `safe` has a handy builtin for doing this:
 
 ```
@@ -878,7 +866,7 @@ total 8
 -rw-r--r-- 1 ops staff 4572 Jun 28 14:24 manifest.yml
 ```
 
-Now we are ready to deploy proto-BOSH.
+Now we are ready to deploy _proto-BOSH_.
 
 ```
 $ make deploy
@@ -913,7 +901,7 @@ or grab a cup of tea.)
 
 All done?  Verify the deployment by trying to `bosh target` the
 newly-deployed Director.  First you're going to need to get the
-password out of our proto-Vault.
+password out of our _proto-Vault_.
 
 ```
 $ safe get secret/aws/proto/bosh/users/admin
