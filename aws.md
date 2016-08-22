@@ -412,13 +412,15 @@ git user.name  is 'Joe User'
 git user.email is 'juser@starkandwayne.com'
 ```
 
-## A Land Before Time
+## Vault
 
 So you've tamed the IaaS and outfitted your bastion host with the necessary tools to deploy stuff.  First up, we have to deploy a BOSH director, which we will call proto-BOSH.
 
 Proto-BOSH is a little different from all of the other BOSH directors we're going to deploy.  For starters, it gets deployed via `bosh-init`, whereas our environment-specific BOSH directors are going to be deployed via the proto-BOSH (and the `bosh` CLI).  It is also the only deployment that gets deployed without the benefit of a pre-existing Vault in which to store secret credentials (but, as you'll see, we're going to cheat a bit on that front).
 
 ### Proto-Vault
+
+![proto-vault][bastion_1]
 
 BOSH has secrets.  Lots of them.  Components like NATS and the database rely on secure passwords for inter-component interaction.  Ideally, we'd have a spinning Vault for storing our credentials, so that we don't have them on-disk or in a git
 repository somewhere.
@@ -510,6 +512,8 @@ knock: knock
 All set!  Now we can deploy our proto-BOSH.
 
 ### Proto-BOSH
+
+![proto-BOSH][bastion_2]
 
 First, you're going to need a place on the bastion host to store
 your deployments:
@@ -932,7 +936,11 @@ deployment files to version control, and push them up _somewhere_.
 It's ok, thanks to Vault, there are no credentials or anything
 sensitive in the Genesis template files.
 
-### Vault
+### Infrastructure Vault
+
+We're building the infrastructure environment's vault.
+
+![Vault][bastion_3]
 
 Now that we have a proto-BOSH director, we can use it to deploy
 our real Vault.  We'll start with the Genesis template for Vault:
@@ -1299,7 +1307,9 @@ we can kill the proto-Vault server process!
 $ sudo pkill vault
 ```
 
-## SHIELD Backups and Restores
+## Shield
+
+![Shield][bastion_4]
 
 SHIELD is our backup solution.  We use it to configure and
 schedule regular backups of data systems that are important to our
@@ -1491,7 +1501,9 @@ deployment, and start configuring your backup jobs.
 
 TODO: Add how to use SHIELD to backup and restore by using an example.
 
-## Bolo Monitoring
+## bolo
+
+![bolo][bastion_5]
 
 Bolo is a monitoring system that collects metrics and state data
 from your BOSH deployments, aggregates it, and provides data
@@ -1725,6 +1737,8 @@ which contains a wealth of information about available graphs,
 collectors, and deployment properties.
 
 ## Concourse
+
+![Concourse][bastion_6]
 
 ### Deploying Concourse
 
@@ -3081,3 +3095,9 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 
 [bosh_levels]:       images/levels_of_bosh.png "Levels of Bosh"
 [bastion_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
+[bastion_1]:         images/bastion_step_1.png "proto-Vault"
+[bastion_2]:         images/bastion_step_2.png "proto-BOSH"
+[bastion_3]:         images/bastion_step_3.png "Vault"
+[bastion_4]:         images/bastion_step_4.png "Shield"
+[bastion_5]:         images/bastion_step_5.png "Bolo"
+[bastion_6]:         images/bastion_step_6.png "Concourse"
