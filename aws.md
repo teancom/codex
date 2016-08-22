@@ -492,9 +492,10 @@ Running it in the background sounds like a fine idea, except that Vault is prett
 chatty, and we can't redirect the output to `/dev/null` because we need to see
 that root token.
 
-#### Target Proto-Vault
+#### Setup Proto-Vault
 
-With our _proto-Vault_ up and spinning, we can target it with `safe`.
+In order to setup the _proto_Vault_ we need to target the server and authenticate.
+We use `safe` as our CLI to do both commands.
 
 ```
 $ safe target proto http://127.0.0.1:8200
@@ -503,11 +504,21 @@ Now targeting proto at http://127.0.0.1:8200
 $ safe targets
 
   proto  http://127.0.0.1:8200
+```
 
+Authenticate with the `Root Token` from the `vault server` output.
+
+```
 $ safe auth token
 Authenticating against proto at http://127.0.0.1:8200
 Token: <paste your Root Token here>
+```
 
+#### Test Proto-Vault
+
+Here's a smoke test to see if you've setup the _proto-Vault_ correctly.
+
+```
 $ safe set secret/handshake knock=knock
 knock: knock
 
