@@ -412,22 +412,40 @@ git user.name  is 'Joe User'
 git user.email is 'juser@starkandwayne.com'
 ```
 
-## Vault
+## Infrastructure Environment
 
-So you've tamed the IaaS and outfitted your bastion host with the necessary tools to deploy stuff.  First up, we have to deploy a BOSH director, which we will call proto-BOSH.
+So far you've Setup Credentials, Used Terraform to construct the IaaS Components
+and Configured a Bastion Host.  We're ready now to setup a BOSH Director on the
+bastion.  
 
-Proto-BOSH is a little different from all of the other BOSH directors we're going to deploy.  For starters, it gets deployed via `bosh-init`, whereas our environment-specific BOSH directors are going to be deployed via the proto-BOSH (and the `bosh` CLI).  It is also the only deployment that gets deployed without the benefit of a pre-existing Vault in which to store secret credentials (but, as you'll see, we're going to cheat a bit on that front).
+We are going to deploy it with `bosh-init`.  Once this BOSH Director is up it
+enables us to deploy environment-specific BOSH directors via this _proto_BOSH_
+server with the `bosh_cli`.
 
 ### Proto-Vault
 
 ![proto-vault][bastion_1]
 
-BOSH has secrets.  Lots of them.  Components like NATS and the database rely on secure passwords for inter-component interaction.  Ideally, we'd have a spinning Vault for storing our credentials, so that we don't have them on-disk or in a git
-repository somewhere.
+BOSH has secrets.  Lots of them.  Components like NATS and the database rely on
+secure passwords for inter-component interaction.  Ideally, we'd have a spinning
+Vault for storing our credentials, so that we don't have them on-disk or in a
+git repository somewhere.
 
-However, we are starting from almost nothing, so we don't have the luxury of using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded Vault server instance _on the bastion host_, and then migrate the credentials to the real Vault later.
+However, we are starting from almost nothing, so we don't have the luxury of
+using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded
+Vault server instance _on the bastion host_, and then migrate the credentials to
+the real Vault later.
 
-The `jumpbox` script that we ran as part of setting up the bastion host installs the `vault` command-line utility, which includes not only the client for interacting with Vault, but also the Vault server daemon itself.
+This we call a _proto_Vault_.  Because it precedes the _proto_BOSH_ and Vault
+deploy we'll be setting up later.
+
+The `jumpbox` script that we ran as part of setting up the bastion host installs
+the `vault` command-line utility, which includes not only the client for
+interacting with Vault, but also the Vault server daemon itself.
+
+#### Start Server
+
+To start the _proto_Vault_, run the `vault server` with the `-dev` flag:
 
 ```
 $ vault server -dev
@@ -485,6 +503,8 @@ Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
 Running it in the background sounds like a fine idea, except that Vault is pretty
 chatty, and we can't redirect the output to `/dev/null` because we need to see
 that root token.
+
+#### Target Proto Vault
 
 With our proto-Vault up and spinning, we can target it:
 

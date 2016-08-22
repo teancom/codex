@@ -28,6 +28,10 @@ Accessible from the internet, this server allows operators to gain access to ser
 
 A BOSH Director that sits before other site level BOSH Directors (staging/production) in order to help enable more rapid updates to the child-level Directors.
 
+## proto-Vault
+
+A temporary vault server used during the bootstrapping of the proto-BOSH Director to store secrets until the `infra` Vault server is deployed.
+
 ## [safe](https://github.com/starkandwayne/safe)
 
 A CLI interface for Vault.
