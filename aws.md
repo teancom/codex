@@ -412,7 +412,7 @@ git user.name  is 'Joe User'
 git user.email is 'juser@starkandwayne.com'
 ```
 
-## Infrastructure Environment
+## Infrastructure / Proto - Site / Environment
 
 So far you've Setup Credentials, Used Terraform to construct the IaaS Components
 and Configured a Bastion Host.  We're ready now to setup a BOSH Director on the
@@ -962,7 +962,7 @@ deployment files to version control, and push them up _somewhere_.
 It's ok, thanks to Vault, there are no credentials or anything
 sensitive in the Genesis template files.
 
-### Infrastructure Vault
+### Generate Vault Deploy
 
 We're building the infrastructure environment's vault.
 
