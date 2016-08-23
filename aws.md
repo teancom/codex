@@ -2595,7 +2595,7 @@ meta:
       pass: (( vault "secret/aws/staging/cf/rds:password" ))
 ```
 
-Not it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
+Now it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
 
 Create first the CA Certificate:
 
