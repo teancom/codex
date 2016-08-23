@@ -156,7 +156,7 @@ meta:
   certs:
     ca: (( vault meta.vault_prefix "/ca:cert" ))
     crl: (( vault meta.vault_prefix "/crl:pem" ))
-    dh: (( vault meta.vault_prefix "/dh:pem" ))
+    dh: (( vault meta.vault_prefix "/dhparam:pem" ))
     server: (( vault meta.vault_prefix "/server:cert" ))
     server_key: (( vault meta.vault_prefix "/server:key" ))
   client_routes:
@@ -295,6 +295,7 @@ meta:
   certs:
     ca: (( vault meta.vault_prefix "/ca:ca_pem" ))
     crl: (( vault meta.vault_prefix "/crl:crl_pem" ))
+    dh: (( vault meta.vault_prefix "dhparam:pem" ))
     server: (( vault meta.vault_prefix "/certs/server.openvpn:cert" ))
     key: (( vault meta.vault_prefix "/certs/server.openvpn:key" ))
   client_routes:
