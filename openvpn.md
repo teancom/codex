@@ -276,13 +276,13 @@ Time to generate certificates. This used to be convoluted, but as of [safe v0.0.
 this is a lot easier:
 
 ```
-$ safe cert secret/aws/proto/openvpn/certs/server.openvpn
+$ safe cert openvpn secret/aws/proto/openvpn/certs/server.openvpn
 ```
 
 Now we need to generate certs for each user:
 
 ```
-$ safe cert secret/aws/proto/openvpn/certs/user1.openvpn
+$ safe cert openvpn secret/aws/proto/openvpn/certs/user1.openvpn
 $ # repeat for all users, and distribute cert/keys to end-users securely
 ```
 
