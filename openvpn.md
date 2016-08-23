@@ -293,8 +293,8 @@ the route to our VPC for the VPN to advertise:
 $ cat properties.yml
 meta:
   certs:
-    ca: (( vault meta.vault_prefix "/ca:ca_pem"
-    crl: (( vault meta.vault_prefix "/crl:crl_pem"
+    ca: (( vault meta.vault_prefix "/ca:ca_pem" ))
+    crl: (( vault meta.vault_prefix "/crl:crl_pem" ))
     server: (( vault meta.vault_prefix "/certs/server.openvpn:cert" ))
     key: (( vault meta.vault_prefix "/certs/server.openvpn:key" ))
   client_routes:
@@ -391,15 +391,8 @@ BOSH:
 
 ```
 # revoke:
-$ safe curl POST pki/revoke '{"serial_number":"<certificate serial number>"}'
-$ curl https://10.4.1.16:8200/pki/crl/pem -k
-$ cat crl.yml
----
-secret/aws/proto/openvpn/crl:
-  pem: |
-    CRL PEM GOES HERE
-$ spruce json crl.yml | safe import
-$ rm crl.yml
+$ safe revoke secret/aws/openvpn/proto/certs/<cert-to-revoke>
+$ safe crl-pem secret/aws/openvpn/crl
 $ make deploy
 ```
 
