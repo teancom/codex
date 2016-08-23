@@ -2538,8 +2538,8 @@ meta:
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
 ```
-$ safe gen 40 secret/aws/staging/rds password
-$ safe get secret/aws/staging/rds
+$ safe gen 40 secret/aws/staging/cf/rds password
+$ safe get secret/aws/staging/cf/rds
 --- # secret/aws/staging/rds
 password: pqzTtCTz7u32Z8nVlmvPotxHsSfTOvawRjnY7jTW
 ```
@@ -2592,7 +2592,7 @@ meta:
     uaadb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault "secret/aws/staging/rds:password" ))
+      pass: (( vault "secret/aws/staging/cf/rds:password" ))
 ```
 
 Not it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
@@ -2639,9 +2639,9 @@ $ cd out
 $ safe write secret/aws/staging/cf/tls/ca "csr@CertAuth.crl"
 $ safe write secret/aws/staging/cf/tls/ca "crt@CertAuth.crt"
 $ safe write secret/aws/staging/cf/tls/ca "key@CertAuth.key"
-$ safe write secret/aws/staging/cf/tls/domain "crt@*.staging.paashub.com.crt"
-$ safe write secret/aws/staging/cf/tls/domain "csr@*.staging.paashub.com.csr"
-$ safe write secret/aws/staging/cf/tls/domain "key@*.staging.paashub.com.key"
+$ safe write secret/aws/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
+$ safe write secret/aws/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
+$ safe write secret/aws/staging/cf/tls/domain "key@*.staging.<your domain>.key"
 ```
 
 Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
@@ -2870,8 +2870,8 @@ networks:
 - name: router2
   subnets:
   - range: 10.4.35.128/25
-    static: [10.4.35.131 - 10.4.35.227]
-    reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
+    static: [10.4.35.132 - 10.4.35.227]
+    reserved: [10.4.35.130 - 10.4.35.131] # amazon reserves these
     gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
@@ -2959,6 +2959,33 @@ Finished	2016-07-08 17:34:46 UTC
 Duration	00:10:59
 
 Deployed 'aws-staging-cf' to 'aws-staging-bosh'
+
+```
+
+You may encounter the following error when you are deploying Beta CF.
+
+```
+Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running instance(s). You requested at least 1.
+```
+
+Amaze has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
+
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/aws/staging` directory. In the following example, you scale runners in both AZ to 2 and you change resource pool `small_z1` to use `m3.medium` type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+
+```
+jobs:
+
+- name: runner_z1
+  instances: 2
+
+- name: runner_z2
+  instances: 2
+
+resource_pools:
+
+- name: small_z1
+  cloud_properties:
+    instance_type: m3.medium
 
 ```
 
