@@ -1599,7 +1599,7 @@ resource "aws_elb" "dev-cf-elb" {
   count                     = "${var.aws_elb_dev_enabled}"
   name                      = "${var.aws_vpc_name}-dev-cf-elb"
   security_groups           = ["${aws_security_group.dmz.id}"]
-  subnets                   = ["${aws_subnet.dmz.id}"]
+  subnets                   = ["${aws_subnet.dev-cf-edge-0.id}","${aws_subnet.dev-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
   health_check {
@@ -1651,7 +1651,7 @@ resource "aws_elb" "staging-cf-elb" {
   count                     = "${var.aws_elb_staging_enabled}"
   name                      = "${var.aws_vpc_name}-staging-cf-elb"
   security_groups           = ["${aws_security_group.dmz.id}"]
-  subnets                   = ["${aws_subnet.dmz.id}"]
+  subnets                   = ["${aws_subnet.staging-cf-edge-0.id}","${aws_subnet.staging-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
   health_check {
@@ -1703,7 +1703,7 @@ resource "aws_elb" "prod-cf-elb" {
   count                     = "${var.aws_elb_prod_enabled}"
   name                      = "${var.aws_vpc_name}-prod-cf-elb"
   security_groups           = ["${aws_security_group.dmz.id}"]
-  subnets                   = ["${aws_subnet.dmz.id}"]
+  subnets                   = ["${aws_subnet.prod-cf-edge-0.id}","${aws_subnet.prod-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
   health_check {
