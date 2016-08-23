@@ -653,7 +653,7 @@ can create a manifest, or (a more likely case) we still have to
 provide some critical information:
 
 ```
-$ cd aws/proto
+$ cd infra/proto
 $ make manifest
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
