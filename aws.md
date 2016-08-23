@@ -414,6 +414,17 @@ git user.email is 'juser@starkandwayne.com'
 
 ## Infrastructure / Proto - Site / Environment
 
+A quick word about **Infrastructure / Proto - Site / Environment**.
+
+In Genesis there are three layers where the templates are divided.
+
+* Global
+* Site
+* Environment
+
+When it comes to Genesis, we're doing to deploy to the `infra` site in the
+`proto` environment.
+
 So far you've Setup Credentials, Used Terraform to construct the IaaS Components
 and Configured a Bastion Host.  We're ready now to setup a BOSH Director on the
 bastion.  
@@ -444,7 +455,7 @@ deploy we'll be setting up later.
 
 The `jumpbox` script that we ran as part of setting up the bastion host installs
 the `vault` command-line utility, which includes not only the client for
-interacting with Vault, but also the Vault server daemon itself.
+interacting with Vault (`safe`), but also the Vault server daemon itself.
 
 #### Start Server
 
@@ -487,10 +498,9 @@ Unseal Key:
 Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
 ```
 
-**NOTE**: You probably want to run this in a `tmux` session, in the foreground.
-Running it in the background sounds like a fine idea, except that Vault is pretty
-chatty, and we can't redirect the output to `/dev/null` because we need to see
-that root token.
+**NOTE**: When you run the `vault server -dev` command, we recommend running it
+in the foreground using either a `tmux` session or a separate ssh tab.  Also, we
+do need to capture the output of the `Root Token`.
 
 #### Setup Proto-Vault
 
