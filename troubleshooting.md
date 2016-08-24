@@ -1,28 +1,44 @@
 ## Common Errors and Solutions to them!
-Here we will display all common errors, the common paths that you ended up in that position, and the ways to get around them. If you can't find the solution in the main docs, then the answer will probably be here....ONWARDS!
+
+Here we will display all common errors, the common paths that you ended up in
+that position, and the ways to get around them. If you can't find the solution
+in the main docs, then the answer will probably be here....ONWARDS!
 
 ### Bastion / Jumpbox
-* When trying to `make all` to deploy the Bastion host.
-    Terraform will connect to AWS, using your Access Key and Secret
-    Key, and spin up all the things it needs.  When it finishes, you
-    should be left with a bunch of subnets, configured network ACLs,
-    security groups, routing tables, a NAT instance (for public
-    internet connectivity) and a Bastion host.
 
-    If the `deploy` step fails with errors like:
+When trying to `make all` to deploy the bastion host. Terraform will connect to
+AWS, using your **Access Key ID** and **Secret Key ID**, then spin up all the
+things it needs.  When it finishes, you should be left with a bunch of subnets,
+configured network ACLs, security groups, routing tables, a NAT instance (for
+public internet connectivity) and a bastion host.
 
-    ```
-    * aws_subnet.prod-cf-edge-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d. status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
-    * aws_subnet.prod-infra-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
-    * aws_subnet.dev-infra-2: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
-    ```
+If the `deploy` or `all` step fails with errors like:
 
-    you should run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to replace the restricted zone.
-    
-* No Vault or Genesis - Chances are you did not run the jumpbox script, refer to [the Bastion/Jumpbox section][1] and make sure that you remain logged in as your Jumpbox user during the rest of the deployment process. Nothing is done from the default Bastion user.
+```
+* aws_subnet.prod-cf-edge-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d. status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
+* aws_subnet.prod-infra-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
+* aws_subnet.dev-infra-2: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
+```
+
+You can run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to
+replace the restricted zone.
+
+**No Vault or Genesis**
+
+Chances are you did not run the `jumpbox` script, refer to [the Bastion/Jumpbox section][1]
+and make sure that you remain logged in as your Jumpbox user during the rest of
+the deployment process. Nothing is done from the default bastion user.
 
 ### ProtoBosh & Proto-Vault
-* Error Deploying Proto-BOSH with Shield Agent Job - If you see the error below, then you are running the scripts and everything from the Bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it to be nice and not throw errors at you.
+
+```
+Error Deploying Proto-BOSH with Shield Agent Job
+```
+
+If you see the error below, then you are running the scripts and everything from
+the bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
+to be nice and not throw errors at you.
+
 ```
     Command 'deploy' failed:
       Deploying:
@@ -40,13 +56,32 @@ Here we will display all common errors, the common paths that you ended up in th
     Makefile:25: recipe for target 'deploy' failed
 ```
 
-### Proto Deployments
-* Vault -
-* Concourse -
-* SHIELD -
-* Bolo -
+## Bastion Host
 
-### Prod Bosh Deployments
-* CF Deployment
+### Verify Keypair
 
-[1]: https://github.com/starkandwayne/codex/blob/master/aws.md#setting-up-the-bastion-host
+There are two ways to check the SSH Key Pair. Either in the AWS Web Console or
+with the AWS CLI.
+
+* Check the Fingerprint here on the AWS Web Console [key page][amazon-keys].
+
+* Use AWC CLI, ensure parameters like `--region`, `--key-name` (referring to SSH
+key pair) are correct:
+
+```
+$ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep 'KeyFingerprint'|awk '{ print $2 }' -
+"05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
+```
+
+Once you have the SSH Key Pair fingerprint from AWS, you can then use `openssl`
+to display the fingerprint of your local `*.pem` SSH key pair file.
+
+```
+$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
+(stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
+```
+
+NOTE: On macOS you need to `brew install openssl` to get OpenSSL 1.0.x.
+
+[1]:            https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
+[amazon-keys]:  https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName

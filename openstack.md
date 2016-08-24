@@ -72,8 +72,14 @@ The password: supersecret
 2016-08-11 00:16:07.106 | stack.sh completed in 463 seconds.
 ```
 
-The remaining is from my setup. If you visit the address given - the one ending in `/dashboard` then you should hopefully see the OpenStack dashboard. Now things always look much better than what they are, so let's run some tests just to make sure everything is set up. In the `devstack` directory, run the test scripts.
+The remaining is from my setup. If you visit the address given - the one ending in `/dashboard` then you should hopefully see the OpenStack dashboard.  You will need your `AUTH_URL`, and to know what that is you will need to run the openstack config and grep for the system variable.
 
+```
+$ openrc  # Run this in the devstack directory
+OS_AUTH_URL=http://<SOME URL>
+```
+
+Now things always look much better than what they are, so let's run some tests just to make sure everything is set up. In the `devstack` directory, run the test scripts.
 
 ```bash
 # Will run through every test and outputs the result.
@@ -84,10 +90,10 @@ $ ./exercise.sh
 In the `terraform/openstack` directory of this repo, create a file called `openstack.tfvars` and enter the above values in the following format, switching out `YOUR_NAME` and `YOUR_IP`:
 
 ```
-tenant_name = "YOUR_NAME-cfproj"
+tenant_name = "<YOUR_NAME>-cfproj"
 user_name = "vcap"
 password = "Cl0udC0w"
-auth_url = "http://YOUR_IP/identity/v2.0"
+auth_url = "<YOUR OS AUTH URL>"
 ```
 
 
