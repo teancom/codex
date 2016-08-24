@@ -2742,7 +2742,7 @@ meta:
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault "secret/aws/staging/rds:password" ))
+      pass: (( vault "secret/aws/staging/cf/rds:password" ))
     uaadb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
