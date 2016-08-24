@@ -2933,7 +2933,7 @@ networks:
   subnets:
   - range: 10.4.35.128/25
     static: [10.4.35.131 - 10.4.35.227]
-    reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
+    reserved: [10.4.35.130 - 10.4.35.131] # amazon reserves these
     gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
