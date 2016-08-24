@@ -28,6 +28,25 @@ variable "aws_rds_dev_master_password"     { default = "admin" } # Password for 
 variable "aws_rds_staging_master_password" { default = "admin" } # Password for STAGING RDS Databases
 variable "aws_rds_prod_master_password"    { default = "admin" } # Password for PROD RDS Databases
 
+variable "aws_elb_dev_enabled"     { default = 0 } # Set to 1 to create the DEV ELB
+variable "aws_elb_staging_enabled" { default = 0 } # Set to 1 to create the STAGING ELB
+variable "aws_elb_prod_enabled"    { default = 0 } # Set to 1 to create the PROD ELB
+
+variable "aws_elb_dev_cert_path"            { default = "/dev/null" } # Path to the DEV ELB Certificate
+variable "aws_elb_dev_private_key_path"     { default = "/dev/null" } # Path to the DEV ELB Private Key
+variable "aws_elb_staging_cert_path"        { default = "/dev/null" } # Path to the STAGING ELB Certificate
+variable "aws_elb_staging_private_key_path" { default = "/dev/null" } # Path to the STAGING ELB Private Key
+variable "aws_elb_prod_cert_path"           { default = "/dev/null" } # Path to the PROD ELB Certificate
+variable "aws_elb_prod_private_key_path"    { default = "/dev/null" } # Path to the PROD ELB Private Key
+
+variable "aws_route53_dev_enabled"     { default = 0 } # Set to 1 to create a DEV CNAME
+variable "aws_route53_staging_enabled" { default = 0 } # Set to 1 to create a STAGING CNAME
+variable "aws_route53_prod_enabled"    { default = 0 } # Set to 1 to create a PROD CNAME
+
+variable "aws_route53_dev_hosted_zone_id"     { default = "" } # DEV Hosted Zone ID
+variable "aws_route53_staging_hosted_zone_id" { default = "" } # STAGING Hosted Zone ID
+variable "aws_route53_prod_hosted_zone_id"    { default = "" } # PROD Hosted Zone ID
+
 #
 # VPC NAT AMI
 #
@@ -1552,6 +1571,218 @@ output "aws.rds.prod-cf-db.endpoint" {
 }
 output "aws.rds.prod-cf-db.port" {
   value = "${aws_rds_cluster.prod-cf-db.port}"
+}
+
+
+
+######## ##       ########
+##       ##       ##     ##
+##       ##       ##     ##
+######   ##       ########
+##       ##       ##     ##
+##       ##       ##     ##
+######## ######## ########
+
+###############################################################
+# DEV-CF-ELB Elastic Load Balancer
+#
+resource "aws_iam_server_certificate" "dev-cf-elb-cert" {
+  count            = "${var.aws_elb_dev_enabled}"
+  name_prefix      = "${var.aws_vpc_name}-dev-cf-elb-cert"
+  certificate_body = "${file("${var.aws_elb_dev_cert_path}")}"
+  private_key      = "${file("${var.aws_elb_dev_private_key_path}")}"
+  lifecycle {
+   create_before_destroy = true
+  }
+}
+resource "aws_elb" "dev-cf-elb" {
+  count                     = "${var.aws_elb_dev_enabled}"
+  name                      = "${var.aws_vpc_name}-dev-cf-elb"
+  security_groups           = ["${aws_security_group.dmz.id}"]
+  subnets                   = ["${aws_subnet.dev-cf-edge-0.id}","${aws_subnet.dev-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:80"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 80
+    lb_protocol        = "HTTP"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 443
+    lb_protocol        = "HTTPS"
+    ssl_certificate_id = "${aws_iam_server_certificate.dev-cf-elb-cert.arn}"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "TCP"
+    lb_port            = 4443
+    lb_protocol        = "SSL"
+    ssl_certificate_id = "${aws_iam_server_certificate.dev-cf-elb-cert.arn}"
+  }
+  tags { Name = "${var.aws_vpc_name}-dev-cf-elb" }
+}
+output "aws.elb.dev-cf-elb.dns_name" {
+  value = "${aws_elb.dev-cf-elb.dns_name}"
+}
+
+###############################################################
+# STAGING-CF-ELB Elastic Load Balancer
+#
+resource "aws_iam_server_certificate" "staging-cf-elb-cert" {
+  count            = "${var.aws_elb_staging_enabled}"
+  name_prefix      = "${var.aws_vpc_name}-staging-cf-elb-cert"
+  certificate_body = "${file("${var.aws_elb_staging_cert_path}")}"
+  private_key      = "${file("${var.aws_elb_staging_private_key_path}")}"
+  lifecycle {
+   create_before_destroy = true
+  }
+}
+resource "aws_elb" "staging-cf-elb" {
+  count                     = "${var.aws_elb_staging_enabled}"
+  name                      = "${var.aws_vpc_name}-staging-cf-elb"
+  security_groups           = ["${aws_security_group.dmz.id}"]
+  subnets                   = ["${aws_subnet.staging-cf-edge-0.id}","${aws_subnet.staging-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:80"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 80
+    lb_protocol        = "HTTP"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 443
+    lb_protocol        = "HTTPS"
+    ssl_certificate_id = "${aws_iam_server_certificate.staging-cf-elb-cert.arn}"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "TCP"
+    lb_port            = 4443
+    lb_protocol        = "SSL"
+    ssl_certificate_id = "${aws_iam_server_certificate.staging-cf-elb-cert.arn}"
+  }
+  tags { Name = "${var.aws_vpc_name}-staging-cf-elb" }
+}
+output "aws.elb.staging-cf-elb.dns_name" {
+  value = "${aws_elb.staging-cf-elb.dns_name}"
+}
+
+###############################################################
+# PROD-CF-ELB Elastic Load Balancer
+#
+resource "aws_iam_server_certificate" "prod-cf-elb-cert" {
+  count            = "${var.aws_elb_prod_enabled}"
+  name_prefix      = "${var.aws_vpc_name}-prod-cf-elb-cert"
+  certificate_body = "${file("${var.aws_elb_prod_cert_path}")}"
+  private_key      = "${file("${var.aws_elb_prod_private_key_path}")}"
+  lifecycle {
+   create_before_destroy = true
+  }
+}
+resource "aws_elb" "prod-cf-elb" {
+  count                     = "${var.aws_elb_prod_enabled}"
+  name                      = "${var.aws_vpc_name}-prod-cf-elb"
+  security_groups           = ["${aws_security_group.dmz.id}"]
+  subnets                   = ["${aws_subnet.prod-cf-edge-0.id}","${aws_subnet.prod-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:80"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 80
+    lb_protocol        = "HTTP"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "HTTP"
+    lb_port            = 443
+    lb_protocol        = "HTTPS"
+    ssl_certificate_id = "${aws_iam_server_certificate.prod-cf-elb-cert.arn}"
+  }
+  listener {
+    instance_port      = 80
+    instance_protocol  = "TCP"
+    lb_port            = 4443
+    lb_protocol        = "SSL"
+    ssl_certificate_id = "${aws_iam_server_certificate.prod-cf-elb-cert.arn}"
+  }
+  tags { Name = "${var.aws_vpc_name}-prod-cf-elb" }
+}
+output "aws.elb.prod-cf-elb.dns_name" {
+  value = "${aws_elb.prod-cf-elb.dns_name}"
+}
+
+
+
+########   #######  ##     ## ######## ########    ########  #######
+##     ## ##     ## ##     ##    ##    ##          ##       ##     ##
+##     ## ##     ## ##     ##    ##    ##          ##              ##
+########  ##     ## ##     ##    ##    ######      #######   #######
+##   ##   ##     ## ##     ##    ##    ##                ##        ##
+##    ##  ##     ## ##     ##    ##    ##          ##    ## ##     ##
+##     ##  #######   #######     ##    ########     ######   #######
+
+###############################################################
+# DEV-CF-ROUTE53 Route53 CNAME
+#
+resource "aws_route53_record" "dev-cf-cname" {
+   count   = "${var.aws_route53_dev_enabled}"
+   zone_id = "${var.aws_route53_dev_hosted_zone_id}"
+   name    = "*.dev"
+   type    = "CNAME"
+   ttl     = "300"
+   records = ["${aws_elb.dev-cf-elb.dns_name}"]
+}
+
+###############################################################
+# STAGING-CF-ROUTE53 Route53 CNAME
+#
+resource "aws_route53_record" "staging-cf-cname" {
+   count   = "${var.aws_route53_staging_enabled}"
+   zone_id = "${var.aws_route53_staging_hosted_zone_id}"
+   name    = "*.staging"
+   type    = "CNAME"
+   ttl     = "300"
+   records = ["${aws_elb.staging-cf-elb.dns_name}"]
+}
+
+###############################################################
+# PROD-CF-ROUTE53 Route53 CNAME
+#
+resource "aws_route53_record" "prod-cf-cname" {
+   count   = "${var.aws_route53_prod_enabled}"
+   zone_id = "${var.aws_route53_prod_hosted_zone_id}"
+   name    = "*.prod"
+   type    = "CNAME"
+   ttl     = "300"
+   records = ["${aws_elb.prod-cf-elb.dns_name}"]
 }
 
 
