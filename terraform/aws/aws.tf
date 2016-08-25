@@ -1441,6 +1441,18 @@ resource "aws_security_group" "cf-elb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+resource "aws_security_group" "cf-ssh-elb" {
+  name = "cf-ssh-elb"
+  description = "Allow only 2222 in"
+  vpc_id = "${aws_vpc.default.id}"
+  tags { Name = "${var.aws_vpc_name}-cf-ssh-elb" }
+
+  ingress {
+    from_port   = 2222
+    to_port     = 2222
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 resource "aws_security_group" "openvpn" {
   name = "openvpn"
@@ -1665,6 +1677,31 @@ resource "aws_elb" "dev-cf-elb" {
 output "aws.elb.dev-cf-elb.dns_name" {
   value = "${aws_elb.dev-cf-elb.dns_name}"
 }
+resource "aws_elb" "dev-cf-ssh-elb" {
+  count                     = "${var.aws_elb_dev_enabled}"
+  name                      = "${var.aws_vpc_name}-dev-cf-ssh-elb"
+  security_groups           = ["${aws_security_group.cf-ssh-elb.id}"]
+  subnets                   = ["${aws_subnet.dev-cf-edge-0.id}","${aws_subnet.dev-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:2222"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 2222
+    instance_protocol  = "TCP"
+    lb_port            = 2222
+    lb_protocol        = "TCP"
+  }
+  tags { Name = "${var.aws_vpc_name}-dev-cf-ssh-elb" }
+}
+output "aws.elb.dev-cf-ssh-elb.dns_name" {
+  value = "${aws_elb.dev-cf-ssh-elb.dns_name}"
+}
 
 ###############################################################
 # STAGING-CF-ELB Elastic Load Balancer
@@ -1717,6 +1754,31 @@ resource "aws_elb" "staging-cf-elb" {
 output "aws.elb.staging-cf-elb.dns_name" {
   value = "${aws_elb.staging-cf-elb.dns_name}"
 }
+resource "aws_elb" "staging-cf-ssh-elb" {
+  count                     = "${var.aws_elb_staging_enabled}"
+  name                      = "${var.aws_vpc_name}-staging-cf-ssh-elb"
+  security_groups           = ["${aws_security_group.cf-ssh-elb.id}"]
+  subnets                   = ["${aws_subnet.staging-cf-edge-0.id}","${aws_subnet.staging-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:2222"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 2222
+    instance_protocol  = "TCP"
+    lb_port            = 2222
+    lb_protocol        = "TCP"
+  }
+  tags { Name = "${var.aws_vpc_name}-staging-cf-ssh-elb" }
+}
+output "aws.elb.staging-cf-ssh-elb.dns_name" {
+  value = "${aws_elb.staging-cf-ssh-elb.dns_name}"
+}
 
 ###############################################################
 # PROD-CF-ELB Elastic Load Balancer
@@ -1768,6 +1830,31 @@ resource "aws_elb" "prod-cf-elb" {
 }
 output "aws.elb.prod-cf-elb.dns_name" {
   value = "${aws_elb.prod-cf-elb.dns_name}"
+}
+resource "aws_elb" "prod-cf-ssh-elb" {
+  count                     = "${var.aws_elb_prod_enabled}"
+  name                      = "${var.aws_vpc_name}-prod-cf-ssh-elb"
+  security_groups           = ["${aws_security_group.cf-ssh-elb.id}"]
+  subnets                   = ["${aws_subnet.prod-cf-edge-0.id}","${aws_subnet.prod-cf-edge-1.id}"]
+  cross_zone_load_balancing = true
+  idle_timeout              = 3600
+  health_check {
+    healthy_threshold   = 10
+    unhealthy_threshold = 2
+    target              = "TCP:2222"
+    interval            = 30
+    timeout             = 5
+  }
+  listener {
+    instance_port      = 2222
+    instance_protocol  = "TCP"
+    lb_port            = 2222
+    lb_protocol        = "TCP"
+  }
+  tags { Name = "${var.aws_vpc_name}-prod-cf-ssh-elb" }
+}
+output "aws.elb.prod-cf-ssh-elb.dns_name" {
+  value = "${aws_elb.prod-cf-ssh-elb.dns_name}"
 }
 
 
