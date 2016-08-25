@@ -52,7 +52,6 @@ create_contents() {
 
 generate_toc(){
   guides=(
-    INTRO.md
     aws.md
     azure.md
     openstack.md
@@ -67,6 +66,7 @@ generate_toc(){
 
   topics=(
     tls.md
+    openvpn.md
     vault.md
     network.md
     troubleshooting.md

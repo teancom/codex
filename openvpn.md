@@ -1,4 +1,6 @@
-# Enabling Remote Access to Internal Services in Client Environments
+# How to Deploy OpenVPN and Setup Root Certificates
+
+## Enabling Remote Access
 
 In order to access the user interfaces for Concourse, SHIELD, Bolo,
 and other internal-only services deployed for clients, your web browser
@@ -10,23 +12,22 @@ For the clients that provide VPN connections inside the infrastructure, use that
 If however we need to provide the client with a way in, we have the following options:
 
 1. Use ssh-tunneling. This unfortunately has some downsides:
-   a. The correct syntax for enabling the tunnels can be difficult to remember,
-      especially if you have multiple SSH hosts to jump through.
-   b. You might have forgotten to enable the tunnel when you originally SSH'd in,
-      but half-way through your investigations, you realize you need the web UI for
-      some task, and now have to start over.
-   c. Managing what services are on what ports, and preventing conflicts between you
-      and other users of the jumpboxes becomes very difficult.
+   1. The correct syntax for enabling the tunnels can be difficult to remember,
+   especially if you have multiple SSH hosts to jump through.
+   2. You might have forgotten to enable the tunnel when you originally SSH'd in,
+   but half-way through your investigations, you realize you need the web UI for
+    some task, and now have to start over.
+   3. Managing what services are on what ports, and preventing conflicts between
+  you and other users of the jumpboxes becomes very difficult.
 2. Expose the internal-only services publicly. This also has downsides:
-   a. Your internal-only services are now one misconfiguration away from being public.
-   b. ACLs to block traffic unless originating from certain areas can be circumvented,
+   1. Your internal-only services are now one misconfiguration away from being public.
+   2. ACLs to block traffic unless originating from certain areas can be circumvented,
       allow more people to access services than you might want, and cause issues for
       remote workers.
 3. Provide a VPN into the infrastructure. Hey, this one has no real downsides that I'm
    documenting, so we should chose this option!
 
-
-# Enter the OpenVPN BOSH Release
+## Enter the OpenVPN BOSH Release
 
 OpenVPN is a relatively easy to manage VPN solution that will work on Mac, Windows, Linux,
 and even mobile devices. We use it in TCP mode, on port 443, so it should be allowed through
@@ -42,7 +43,7 @@ Lets walk through setting up OpenVPN in AWS, using the same infrastructure built
 on AWS walkthrough](aws.md). Run through that plan through at least the deploying Vault stage,
 and come back here to finish up the rest.
 
-Back? Awesome. Let's create a new openvpn deployment using our genesis template:
+Back? Awesome. Let's create a new `openvpn-deployment` using our genesis template:
 
 ```
 $ cd ~/ops
@@ -141,9 +142,11 @@ Makefile:25: recipe for target 'deploy' failed
 make: *** [deploy] Error 3
 ```
 
+### Vault Setup
+
 Ok, time to start filling in some data. We know we need certs and keys for OpenVPN, and we'll
-be using vault to store them, so we can fill in the vault data now (and worry about generating
-the keys in a couple minutes). Also, lets solve the  client routes. We will want to push a route
+be using Vault to store them, so we can fill in the Vault data now (and worry about generating
+the keys in a couple minutes). Also, lets solve the client routes. We will want to push a route
 to VPN clients to allow them to attempt to access anything in our VPC (10.4.0.0/16).
 
 ```
@@ -153,7 +156,7 @@ meta:
   certs:
     ca: (( vault meta.vault_prefix "/ca:cert" ))
     crl: (( vault meta.vault_prefix "/crl:pem" ))
-    dh: (( vault meta.vault_prefix "/dh:pem" ))
+    dh: (( vault meta.vault_prefix "/dhparam:pem" ))
     server: (( vault meta.vault_prefix "/server:cert" ))
     server_key: (( vault meta.vault_prefix "/server:key" ))
   client_routes:
@@ -163,9 +166,12 @@ meta:
 **NOTE** we need to specify the routes as `NET_ADDR NETMASK`, not via CIDR notation, as OpenVPN
 does not work when CIDR is specified.
 
+### Network Configuration
+
 Now we can work on the networking configuration for OpenVPN. We need to place OpenVPN in two AZs,
 and stick an ELB in front of them. Since the ELB will be public, we have the added requirement
-that the subnets openvpn VMs run on will be publicly accessible, rather than completely private.
+that the subnets used by the VMs of OpenVPN will be publicly accessible.
+
 Essentially this boils down to needing a routing table in AWS that is hooked up to an Internet
 Gateway. If you used the Codex terraform configs to create all the subnets in your VPC, this
 has been taken care of you, and you only need to create your ELB, and consult the [Network Plan](network.md)
@@ -174,6 +180,7 @@ When creating the ELB in the AWS console, ensure that it is running using the TC
 protocol (not HTTP, HTTPS, or SSL - our TLS termination will happen inside OpenVPN), on port 443,
 with an instance protocol of TCP, and an instance port of 443. Place it on the subnets for
 your OpenVPN servers (according to the [Network Plan](network.md), 10.4.4.0/25 and 10.4.4.128/25).
+
 You do not need to assign any instances at this time, BOSH will handle that assignment for us.
 When prompted for a security group, assign the `openvpn` security group (or create one that
 only allows TCP port 443 inbound from 0.0.0.0/0).
@@ -218,7 +225,10 @@ networks:
         - 10.4.4.141 - 10.4.4.200  # first 16 IPs
 ```
 
-Now we need to set up our PKI in Vault:
+### Initialze Public Key Infrastructure
+
+Using Vault and `safe` we can begin the process to initialize our Public Key
+Infrastructure (PKI).
 
 ```
 $ safe vault mount pki # loads the pki backend into vault
@@ -239,80 +249,60 @@ $ vault write pki/roles/openvpn allowed_domains="openvpn" allow_subdomains="true
 Success! Data written to: pki/roles/openvpn
 ```
 
-Now, let's grab the CA and initial CRL (will be empty, but is required nonetheless). The data will be stuck in Vault momentarily:
+Now, let's use safe to stick the CA pem and initial CRL into the secrets backend for us:
 
 ```
-$ curl ${VAULT_ADDRESS}/v1/pki/ca/pem -k
-OUTPUT REDACTED
-$ curl ${VAULT_ADDRESS}/v1/pki/crl/pem -k
-OUTPUT REDACTED
+$ safe ca-pem secret/aws/openvpn/proto/ca
+$ safe crl-pem secret/aws/openvpn/proto/crl
 ```
+### Setup Diffie-Hellman
 
-We will need to generate our DH params via `openssl`, and store it in dh.pem (for now, we'll stick
-it in vault momentarily):
+The [Diffie-Hellman][dh] key-exchange is a secure way to exchange keys.
+
+We will use `safe` to generate the DH params and store in the secret backend (uses `openssl dhparam`
+under the hood):
 
 ```
-$ $ openssl dhparam -out dh.pem 2048
+$ safe dhparam 2048 secret/aws/openvpn/proto/dhparam
 Generating DH parameters, 2048 bit long safe prime, generator 2
 This is going to take a long time
-......................................+.........................................................................+.....................................+..............................................................................+............+...........................
+.....................................................................................................................+.......................................................................................................+............................................................+..........................
 (output shortened for sanity)
 ```
 
-Time to generate certificates. Take the private key, and cert values, and store them in
-the correct area of the `secret` backend in vault. **NOTE** the private keys are not stored
-after creation, unless you put the data somewhere, so you will need to re-issue the cert
-if you lose them. Manually storing in vault, by creating a yaml file, and importing it to Vault
-via `safe` is recommended:
+## Generate Certificates
+
+Time to generate certificates. This used to be convoluted, but as of [safe v0.0.23](https://github.com/starkandwayne/safe/releases/tag/v0.0.23),
+this is a lot easier:
 
 ```
-$ safe vault pki/issue/openvpn common_name="server.openvpn"
-Key             	Value
----             	-----
-lease_id        	pki/issue/openvpn/d5c7a33b-68e6-d0f6-3503-6bf3a771a06d
-lease_duration  	2591999
-lease_renewable 	false
-certificate     	REDACTED
-issuing_ca      	REDACTED
-private_key     	REDACTED
-private_key_type	rsa
-serial_number   	67:f4:6d:65:4d:0e:b8:7a:fa:be:f0:d5:f5:ae:86:59:e2:4e:e7:96
+$ safe cert openvpn secret/aws/proto/openvpn/certs/server.openvpn
 ```
 
-Do this for each of the client certificates needing to be generated as well. Those do not
-need to be stored in Vault, but should be securely transferred to each user to be connecting
-to the VPN (one cert per user). You *should* stick the serial number in some database (Vault
-might be easiest), associated with each user, should you need to revoke it down the road,
-as Vault requires the serial number of the certificate to revoke it, and add to the CRL.
-
-To get all of the multi-line certificate/key/pem data into vault, I recommend `spruce json | safe import`:
-```
-$ cat certs.yml
----
-secret/aws/proto/openvpn/server:
-  cert: |
-  REDACTED CERTIFICATE
-  key: |
-  REDACTED PRIVATE KEY
-secret/aws/proto/openvpn/ca:
-  cert: |
-  REDACTED CA CERTIFICATE
-secret/aws/proto/openvpn/crl:
-  pem: |
-  REDACTED CRL PEM DATA
-secret/aws/proto/openvpn/dh:
-  pem: |
-  REDACTED DH PARAMS PEM DATA
-$ spruce json certs.yml | safe import
-```
-
-With that data in vault, you should clean up any temporary files that you used to store
-certs/keys prior to placing in Vault:
+Now we need to generate certs for each user:
 
 ```
-rm certs.yml
-rm dh.pem
+$ safe cert openvpn secret/aws/proto/openvpn/certs/user1.openvpn
+$ # repeat for all users, and distribute cert/keys to end-users securely
 ```
+
+Lastly, we just need to update properties.yml, to point to the correct paths in Vault, and provide
+the route to our VPC for the VPN to advertise:
+
+```
+$ cat properties.yml
+meta:
+  certs:
+    ca: (( vault meta.vault_prefix "/ca:ca_pem" ))
+    crl: (( vault meta.vault_prefix "/crl:crl_pem" ))
+    dh: (( vault meta.vault_prefix "dhparam:pem" ))
+    server: (( vault meta.vault_prefix "/certs/server.openvpn:cert" ))
+    key: (( vault meta.vault_prefix "/certs/server.openvpn:key" ))
+  client_routes:
+  - 10.4.0.0 255.255.0.0
+```
+
+### Deploy OpenVPN
 
 Now, we can finally deploy!
 
@@ -371,9 +361,9 @@ Duration	00:00:00
 Deployed `aws-proto-openvpn' to `aws-proto-bosh'
 ```
 
-# Client VPN configuration:
+## Client VPN Configuration
 
-End users should use the following openvpn configuration in their clients:
+End users should use the following `openvpn` configuration in their clients:
 
 ```
 client
@@ -394,7 +384,7 @@ verb 3
 They  will need to be given their private key, and certificate, as well as the CA certificate,
 and those placed in the same directory as their configuration file.
 
-# Revoking VPN Access for users
+### Revoking VPN Access for users
 
 If a users access needs to be revoked, you can use Vault to revoke the certificate, retrieve,
 retrieve the new CRL from Vault, store the updated CRL into Vault, and redeploy OpenVPN to via
@@ -402,22 +392,15 @@ BOSH:
 
 ```
 # revoke:
-$ safe curl POST pki/revoke '{"serial_number":"<certificate serial number>"}'
-$ curl https://10.4.1.16:8200/pki/crl/pem -k
-$ cat crl.yml
----
-secret/aws/proto/openvpn/crl:
-  pem: |
-    CRL PEM GOES HERE
-$ spruce json crl.yml | safe import
-$ rm crl.yml
+$ safe revoke secret/aws/openvpn/proto/certs/<cert-to-revoke>
+$ safe crl-pem secret/aws/openvpn/crl
 $ make deploy
 ```
 
-# Future notes
+## Future Notes
 
 We will most likely make a lot of the PKI interaction much easier in the future, since as is, it's
 quite manual and not likely to be sustainable. Look for new features built-into `safe` for this,
 that may render this documentation out of date.
 
-
+[dh]: (https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange)

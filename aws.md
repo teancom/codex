@@ -1,96 +1,202 @@
-# Part I - Deploying on AWS
+# Part I - AWS Guide
 
-Welcome to the Stark & Wayne guide to deploying Cloud Foundry on Amazon Web Services.
+## Overview
 
-## AWS Checklist
+Welcome to the Stark & Wayne guide to deploying Cloud Foundry on Amazon Web
+Services.  This guide provides the steps to create authentication credentials,
+generate a Virtual Private Cloud (VPC), then use Terraform to prepare a bastion
+host.
 
-To run the `terraform` commands in this repo or do work on AWS, other than an AWS account (obviously), you'll need the following:
+From this bastion, we setup a special BOSH director we call the proto-BOSH server
+where software like Vault, Concourse, Bolo and SHEILD are setup in order to give
+each of the environments created after the proto-BOSH key benefits of:
 
-1. Your AWS Access Key ID
-2. Your AWS Secret Key ID
+* Secure Credential Storage
+* Pipeline Management
+* Monitoring Framework
+* Backup and Restore Datastores
+
+Once the proto-BOSH environment is setup, the child environments will have the
+added benefit of being able to update their BOSH software as a release, rather
+than having to re-initialize with `bosh-init`.
+
+This also increases the resiliency of all BOSH directors through monitoring and
+backups with software created by Stark & Wayne's engineers.
+
+And visibility into the progress and health of each application, release, or
+package is available through the power of Concourse pipelines.
+
+![Levels of Bosh][bosh_levels]
+
+In the above diagram, BOSH (1) is the proto-BOSH, while BOSH (2) and BOSH (3)
+are the per-site BOSH directors.
+
+Now it's time to setup the credentials.
+
+## Setup Credentials
+
+So you've got an AWS account right?  Cause otherwise let me interest you in
+another guide like our OpenStack, Azure or vSphere, etc.  j/k  
+
+To begin, let's login to [Amazon Web Services][aws] and prepare the necessary
+credentials and resources needed.
+
+1. Access Key ID
+2. Secret Key ID
 3. A Name for your VPC
 4. An EC2 Key Pair
 
 ### Generate Access Key
 
-The first thing you're going to need is a combination **Access Key ID** / **Secret Key ID**.  These are generated (for IAM users) via the IAM dashboard.  If you aren't using IAM for this, you really should.
+  The first thing you're going to need is a combination **Access Key ID** /
+  **Secret Key ID**.  These are generated (for IAM users) via the IAM dashboard.
 
-To help keep things isolated, we're going to set up a brand new IAM user.  It's a good idea to name this user something like `cf` so that no one tries to re-purpose it later, and so that it doesn't get deleted.
+  To help keep things isolated, we're going to set up a brand new IAM user.  It's
+  a good idea to name this user something like `cf` so that no one tries to
+  re-purpose it later, and so that it doesn't get deleted.
 
-On the AWS web console, access the IAM service, and click on `Users` in the sidebar.  Then create a new user and select "Generate an access key for each user".
+1. On the AWS web console, access the IAM service, and click on `Users` in the
+sidebar.  Then create a new user and select "Generate an access key for each user".
 
-**Make sure you save the secret key somewhere safe**, like 1Password or a Vault instance.  Amazon will be unable to give you the **Secret Key ID** if you misplace it -- your only recourse at that point is to generate a new set of keys and start over.
+  **NOTE**: **Make sure you save the secret key somewhere secure**, like 1Password
+  or a Vault instance.  Amazon will be unable to give you the **Secret Key ID**
+  if you misplace it -- your only recourse at that point is to generate a new
+  set of keys and start over.
 
-Then, find the user and click on the username. This should bring up a summary of the user with things like the _User ARN_, _Groups_, etc.  In the bottom half of the Summary panel, you should see some tabs, and one of those tabs should be _Permissions_.  Click on that one.
+2. Next, find the `cf` user and click on the username. This should bring up a
+summary of the user with things like the _User ARN_, _Groups_, etc.  In the
+bottom half of the Summary panel, you can see some tabs, and one of those tabs
+is _Permissions_.  Click on that one.
 
-Now assign the **PowerUserAccess** role to your user. This user will be able to do any operation except IAM operations.  You can do this by clicking on the _Permissions_ tab and then clicking on the _attach policy_ button.
+3. Now assign the **PowerUserAccess** role to your user. This user will be able to
+do any operation except IAM operations.  You can do this by clicking on the
+_Permissions_ tab and then clicking on the _attach policy_ button.
 
-We will also need to create a custom user policy in order to create ELBs with SSL listeners. At the same _Permissions_ tab, expand the _Inline Policies_ and then create one using the _Custom Policy_ editor. Name it `ServerCertificates` and paste the following content:
+4. We will also need to create a custom user policy in order to create ELBs with
+SSL listeners. At the same _Permissions_ tab, expand the _Inline Policies_ and
+then create one using the _Custom Policy_ editor. Name it `ServerCertificates`
+and paste the following content:
 
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "iam:DeleteServerCertificate",
-                "iam:UploadServerCertificate",
-                "iam:ListServerCertificates",
-                "iam:GetServerCertificate"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
+    ```
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeleteServerCertificate",
+                    "iam:UploadServerCertificate",
+                    "iam:ListServerCertificates",
+                    "iam:GetServerCertificate"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+    ```
 
-Click on _Apply Policy_ and you will be all set.
+5. Click on _Apply Policy_ and you will be all set.
 
 ### Name Your VPC
 
-This step is really simple -- just make one up.  The VPC name will be used to prefix all of the Network ACLs, Subnets and Security Groups, so that you can have multiple VPCs under one account without going cross-eyed trying to keep them separate.
+This step is really simple -- just make one up.  The VPC name will be used to
+prefix certain things that Terraform creates in the AWS Virtual Private Cloud.
+When managing multiple VPC's this can help you to sub-select only the ones you're
+concerned about.
+
+The VPC is configured in Terraform using the `aws_vpc_name` variable in the
+`aws.tfvars` file we're going to create soon.
+
+```
+aws_vpc_name = "snw"
+```
+
+The prefix of `snw` for Stark & Wayne would show up before VPC components like
+Subnets, Network ACLs and Security Groups:
+
+| Name            | ID              |
+| :-------------- | :-------------- |
+| snw-dev-infra-0 | subnet-cf7812b9 |
+| snw-hardened    | acl-10feff74    |
+| snw-dmz         | sg-e0cfcf86     |
 
 ### Generate EC2 Key Pair
 
-The Access Key / Secret Key is used to get access to the Amazon Web Services themselves.  In order to properly deploy the NAT and Bastion Host instances to EC2, you're going to need an EC2 Key Pair.  This is the key pair you're going to need to use to SSH into the instances.
+The **Access Key ID** / **Secret Key ID** are used to get access to the Amazon
+Web Services themselves.  In order to properly deploy on EC2 over SSH, we'll need
+to create an **EC2 Key Pair**.  This will be used as we bring up the initial NAT
+and bastion host instances. And is the SSH key you'll use to connect from your
+local machine to the bastion.
 
-Starting from the main Amazon Web Console, go to Service > EC2, and then click the _Key Pairs_ link under _Network & Security_. The big blue `Create Key Pair` button.  Make a note of the name you chose for the key pair, because we're going to need that for our Terraform configuration.
+**NOTE**: Make sure you are in the correct region (top-right corner of the black
+menu bar) when you create your **EC2 Key Pair**. Otherwise, it just plain won't
+work. The region name setting can be found in `aws.tf` and the mapping to the
+region in the menu bar can be found on [Amazon Region Doc][amazon-region-doc].
 
-**N.B.**: Make sure you are in the correct region (top-right corner of the black menu bar) when you create your EC2 Key Pair. Otherwise, it just plain won't work. The region name setting can be found in `aws.tf` and the mapping to the region in the menu bar can be found on [Amazon Region Doc] [amazon-region-doc].
+1. Starting from the main Amazon Web Console, go to Service > EC2, and then click
+the _Key Pairs_ link under _Network & Security_. Look for the big blue
+`Create Key Pair` button.
 
-## Create AWS Resources with Terraform
+2. This downloads a file matching the name of your **EC2 Key Pair**.  Example,
+a key pair named cf-deploy would produce a file named `cf-deploy.pem` and be saved
+to your Downloads folder.  Also `chmod 0600` the `*.pem` file.
 
-Once the requirements for AWS are met, we can put it all together and build out your shiny new Virtual Private Cloud (VPC) in Amazon.  For this step, you're going to want to be in the `terraform/aws` sub-directory of this repository.  This Terraform configuration directly matches the [Network Plan][netplan] for the demo environment.  For deploying in production, you may need to tweak or rewrite.
+3. Decide where you want this file to be.  All `*.pem` files are ignored in the
+codex repository.  So you can either move this file to the same folder as
+`CODEX_ROOT/tefrraform/aws` or move it to a place you keep SSH keys and use the
+full path to the `*.pem` file in your `aws.tfvars` for the `aws_key_file`
+variable name.
 
-Create a `aws.tfvars` file with the following configurations (substituting your actual values, of course), all the other configurations have default setting in the `terraform/aws/aws.tf` file.
+```
+aws_key_file = /Users/<username>/.ssh/cf-deploy.pem
+```
+
+## Use Terraform
+
+Once the requirements for AWS are met, we can put it all together and build out
+your shiny new Virtual Private Cloud (VPC), NAT server and bastion host. Change
+to the `terraform/aws` sub-directory of this repository before we begin.
+
+The configuration directly matches the [Network Plan][netplan] for the demo
+environment.  When deploying in other environments like production, some tweaks
+or rewrites may need to be made.
+
+### Variable File
+
+Create a `aws.tfvars` file with the following configurations (substituting your
+actual values) all the other configurations have default setting in the
+`CODEX_ROOT/terraform/aws/aws.tf` file.
 
 ```
 aws_access_key = "..."
 aws_secret_key = "..."
-aws_vpc_name = "my-new-vpc"
-aws_key_name = "bosh-ec2-key"
+aws_vpc_name   = "snw"
+aws_key_name   = "cf-deploy"
+aws_key_file   = "/Users/<username/.ssh/cf-deploy.pem"
 ```
 
-If you need to change the region or subnet, you can override the defaults by adding:
+If you need to change the region or subnet, you can override the defaults
+by adding:
 
 ```
-aws_region = "us-east-1"
-network = "10.42"
+aws_region     = "us-east-1"
+network        = "10.42"
 ```
 
-You may change some default settings according to the real cases you are working on. For example, you can change `instance_type (default is t2.small) ` in `aws.tf` to large size if the bastion server has high workload.
+You may change some default settings according to the real cases you are
+working on. For example, you can change `instance_type (default is t2.small) `
+in `aws.tf` to large size if the bastion would require a high workload.
 
-NOTE: We recommend [a region with three availability zones][az] for production level environments.
+### Production Considerations
 
-As an option, if you have the codex repo as your base, you can call `make aws-watch` - and `make aws-stopwatch` to stop the script - to automate the startup and shutdown of your instances at certain times to reduce runtime cost. To do so, use a digit between 0-24 representing the hour like below which will turn on the instances at 9:00AM and turn them off at 5:00PM local time.
+When considering production availability. We recommend [a region with three availability zones][az]
+for best HA results.  Vault requires at least three zones.  Please feel free to
+list any other software that requires more than two zones for HA.
 
-```
-startup = "9"
-shutdown = "17"
-```
+### Build Resources
 
-As a quick pre-flight check, run `make manifest` to compile your Terraform plan and suss out any issues with naming, missing variables, configuration, etc.:
+As a quick pre-flight check, run `make manifest` to compile your Terraform plan
+and suss out any issues with naming, missing variables, configuration, etc.:
 
 ```
 $ make manifest
@@ -100,10 +206,12 @@ Refreshing Terraform state prior to plan...
 
 <snip>
 
-Plan: 33 to add, 0 to change, 0 to destroy.
+Plan: 129 to add, 0 to change, 0 to destroy.
 ```
 
-If everything worked out you should se a summary of the plan.  If this is the first time you've done this, all of your changes should be additions.  The numbers may differ from the above output, and that's okay.
+If everything worked out you should se a summary of the plan.  If this is the
+first time you've done this, all of your changes should be additions.  The
+numbers may differ from the above output, and that's okay.
 
 Now, to pull the trigger, run `make deploy`:
 
@@ -111,72 +219,115 @@ Now, to pull the trigger, run `make deploy`:
 $ make deploy
 ```
 
-Terraform will connect to AWS, using your **Access Key ID** and **Secret Key ID**, and spin up all the things it needs.  When it finishes, you should be left with a bunch of subnets, configured network ACLs, security groups, routing tables, a NAT instance (for public internet connectivity) and a Bastion host.
+Terraform will connect to AWS, using your **Access Key ID** and **Secret Key ID**,
+and spin up all the things it needs.  When it finishes, you should be left with
+a bunch of subnets, configured network ACLs, security groups, routing tables,
+a NAT instance (for public internet connectivity) and a bastion host.
 
-If the `deploy` step fails with errors like:
+If you run into issues before this point refer to our [troubleshooting][troubleshooting]
+doc for help.
 
-```
- * aws_subnet.prod-cf-edge-1: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d.
-	status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
- * aws_subnet.prod-infra-1: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e.
-	status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
-* aws_subnet.dev-infra-3: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e.
-	status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
-```
+### Automate Build and Teardown
 
-you should run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to replace the restricted zone.
+When working with development environments only, there are options built into
+Terraform that will allow you to configure additional variables and then run a
+script that will automatically create or destroy the base Terraform environment
+for you (a NAT server and a bastion host).  This allows us to help reduce runtime
+cost.
 
-## Prepare Bastion Host
-
-The bastion host is an access point virtual machine that your IaaS instrumentation layer (probably Terraform) should have provisioned for you.  As such, you probably will need to consult with your IaaS provider to figure out what IP address the bastion host can be accessed at.  For example, on AWS, find the `bastion` EC2 instance and note its Elastic IP address.
-
-You're going to need to SSH into the bastion host (as the `ubuntu` user), and unfortunately, that is also provider-specific.  In AWS, you'll just SSH to the Elastic IP, using the private half of the EC2 keypair you generated.  Other IaaS's may have other
-requirements.
-
-### Verify Keypair
-
-You can check your SSH keypair by comparing the Amazon fingerprints.
-
-On the Web UI, you can check the uploaded key on the [key page][amazon-keys].
-
-If you prefer the Amazon CLI, you can run (replacing bosh with your key name):
+Setup the variables of what time (in military time) that you'd like the script's
+time range to monitor.
 
 ```
-$ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep 'KeyFingerprint'|awk '{ print $2 }' -
-"05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
-$
+startup = "9"
+shutdown = "17"
 ```
 
-You check your private key you are using with:
+With the `startup` and `shutdown` variables configured in the `aws.tfvars` file,
+you can then return to the `CODEX_ROOT/terraform/aws` folder and run:
+
+* `make aws-watch`
+* `make aws-stopwatch`
+
+The first starts the background process that will be checking if it's time to
+begin the teardown.  The second will shutdown the background process.
+
+## Bastion Host
+
+For our purposes, the bastion host is the initial jumpbox server from which we'll
+begin to create our `infra` network.  From this entry-point we'll be creating a
+BOSH Director, installing software such as vault, shield, bolo and concourse.
+
+This software allows the advanced deployment and management of each environment
+created after the first `infra` environment.
+
+We'll be covering each of these steps in greater detail as we go along, by the time
+you're done working on the bastion server, you'll have installed each of the
+following in the numbered order:
+
+![Bastion Host Overview][bastion_overview]
+
+### Public IP Address
+
+Before we can begin to install software, we need to connect to the server.  There
+are a couple of ways to get the IP address.
+
+* At the end of the Terraform `make deploy` output the `bastion` address is displayed.
 
 ```
-$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
-(stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
-$
+box.bastion.public    = 52.43.51.197
+box.nat.public        = 52.41.225.204
 ```
 
-(on OS X you need to `brew install openssl` to get OpenSSL 1.0.x and use that version)
+* In the AWS Console, go to Services > EC2.  In the dashboard each of the
+**Resources** are listed.  Find the _Running Instances_ click on it and locate
+the bastion.  The _Public IP_ is an attribute in the _Decription_ tab.
 
-### Setup Jumpbox
+### Connect to Bastion
 
-Once on the bastion host, you'll want to use the `jumpbox` script, which you can get off of Github, like so:
+You'll use the **EC2 Key Pair** `*.pem` file that was stored from the
+[Generate EC2 Key Pair](aws.md#generate-ec2-key-pair) step before as your credential
+to connect.
+
+In forming the SSH connection command, use the `-i` flag to give SSH the path to
+the `IdentityFile`.  The default user on the bastion server is `ubuntu`.  This
+will change in a little bit though when we create a new user, so don't get too
+compfy.
 
 ```
-sudo curl -o /usr/local/bin/jumpbox \
-https://raw.githubusercontent.com/starkandwayne/jumpbox/master/bin/jumpbox
-sudo chmod 0755 /usr/local/bin/jumpbox
+$ ssh -i ~/.ssh/cf-deploy.pem ubuntu@52.43.51.197
 ```
 
-Script in hand, you can go ahead and prepare the system with
-globally available utilities:
+Problems connecting?  [Verify your SSH fingerprint][verify_ssh] in the
+troubleshooting doc.
+
+### Add User
+
+Once on the bastion host, you'll want to use the `jumpbox` script, which has
+been installed automatically by the Terraform configuration. [This script installs][jumpbox]
+some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which
+will be important when we start using the bastion host to do deployments.
+
+**NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.
+The _BOSH release_ can be used as part of the deployment.  And the script gets
+run directly on the bastion host.
+
+Once connected to the bastion, check if the `jumpbox` utility is installed.
 
 ```
-$ sudo jumpbox system
+$ jumpbox -v
+jumpbox v49
 ```
 
-That should install some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which will be important when we start using the bastion host to do deployments.
+In order to have the dependencies for the `bosh_cli` we need to create a user.
+Also a convenience method at the end will prompt for git configuration that will
+be useful when we are generating Genesis templates later.
 
-Next up, you're going to want to provision some normal user accounts on the bastion host, so that operations staff can login via named accounts:
+Also, using named accounts provides auditing (via the `sudo` logs), and
+isolation (people won't step on each others toes on the filesystem) and
+customization (everyone gets to set their own prompt / shell / `$EDITOR`).
+
+Let's add a user with `jumpbox useradd`:
 
 ```
 $ jumpbox useradd
@@ -186,34 +337,80 @@ sudo password for ubuntu:
 You should run `jumpbox user` now, as juser:
   sudo -iu juser
   jumpbox user
-
-$ sudo -iu juser
-$ jumpbox user
-<snip>
 ```
 
-We also want to use our own ssh key to login to the bastion host, so we will copy our desktop/laptop public ssh keypair into the user's authorized keys:
+### Setup User
+
+After you've added the user, **be sure you follow up and setup the user** before
+going any further.
+
+Use the `sudo -iu juser` command to change to the user.  And run `jumpbox user`
+to install all dependent packages.
+
+```
+$ sudo -iu juser
+$ jumpbox user
+```
+
+### Add Authorized Key
+
+While logged in as your new user, add your local machine's public key that's
+already in your key chain.  (Ex. `~/.ssh/id_rsa.pub`)
+
+We're going to copy it to new remote users's `~/.ssh/authorized_keys` file.
 
 ```
 $ mkdir ~/.ssh
 $ vim ~/.ssh/authorized_keys
+  <copy in your key, save and exit>
 $ chmod 600 ~/.ssh/authorized_keys
 $ logout
 ```
 
-Using named accounts provides auditing (via the `sudo` logs), isolation (people won't step on each others toes on the filesystem) and customization (everyone gets to set their own prompt / shell / $EDITOR / etc.)
+### SSH Config
 
-Once you're done setting up your users, you should log in (via SSH) as your personal account and make sure everything is working.
+On your local computer, setup an entry in the `~/.ssh/config` file for your
+bastion host.  Substituting the correct IP and path to `*.pem` file.
 
-You can verify what's currently installed on the bastion via:
+```
+Host bastion
+  Hostname 52.43.51.197
+  User juser
+```
+
+### Test Login
+
+After you've logged in as `ubuntu` once, created your user, logged out and
+configured your SSH config, you'll be ready to try to connect via the `Host`
+alias.
+
+```
+$ ssh bastion
+```
+
+If you can login and run `jumpbox` and everything returns green, everything's
+ready to continue.
 
 ```
 $ jumpbox
+
+<snip>
+
+>> Checking jumpbox installation
+jumpbox installed - jumpbox v49
+ruby installed - ruby 2.2.4p230 (2015-12-16 revision 53155) [x86_64-linux]
+rvm installed - rvm 1.27.0 (latest) by Wayne E. Seguin <wayneeseguin@gmail.com>, Michal Papis <mpapis@gmail.com> [https://rvm.io/]
+bosh installed - BOSH 1.3184.1.0
+bosh-init installed - version 0.0.81-775439c-2015-12-09T00:36:03Z
+jq installed - jq-1.5
+spruce installed - spruce - Version 1.7.0
+safe installed - safe v0.0.23
+vault installed - Vault v0.6.0
+genesis installed - genesis 1.5.2 (61864a21370c)
+
+git user.name  is 'Joe User'
+git user.email is 'juser@starkandwayne.com'
 ```
-
-For more information, check out [the jumpbox repo][jumpbox] on Github.
-
-Note: try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.  The latter provisions the jumpbox machine as part of the deployment, provides requisite packages, and creates user accounts.  The former is really only useful for setting up / updating the bastion host.
 
 ## A Land Before Time
 
@@ -282,10 +479,10 @@ Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
 ...
 ```
 
-(Note: you probably want to run this in a `tmux` session, in the
-foreground.  Running it in the background sounds like a fine idea,
-except that Vault is pretty chatty, and we can't redirect the
-output to `/dev/null` because we need to see that root token.)
+**NOTE**: You probably want to run this in a `tmux` session, in the foreground.
+Running it in the background sounds like a fine idea, except that Vault is pretty
+chatty, and we can't redirect the output to `/dev/null` because we need to see
+that root token.
 
 With our proto-Vault up and spinning, we can target it:
 
@@ -404,9 +601,8 @@ Created environment aws/proto:
 0 directories, 10 files
 ```
 
-(Note: don't forget that `--type bosh-init` flag, it's very
-important. otherwise, you'll run into problems with your
-deployment)
+**NOTE** Don't forget that `--type bosh-init` flag is very important. Otherwise,
+you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and
 stored them in our proto-Vault, under the `secret/aws/proto/bosh`
@@ -1110,6 +1306,52 @@ schedule regular backups of data systems that are important to our
 running operation, like the BOSH database, Concourse, and Cloud
 Foundry.
 
+### Setting up AWS S3 For Backup Archives
+
+To help keep things isolated, we're going to set up a brand new
+IAM user just for backup archive storage.  It's a good idea to
+name this user something like `backup` or `shield-backup` so that
+no one tries to re-purpose it later, and so that it doesn't get
+deleted. We also need to generate an access key for this user and store those credentials in the Vault:
+
+```
+$ safe set secret/aws/proto/shield/aws access_key secret_key
+access_key [hidden]:
+access_key [confirm]:
+
+secret_key [hidden]:
+secret_key [confirm]:
+```
+
+You're also going to want to provision a dedicated S3 bucket to
+store archives in, and name it something descriptive, like
+`codex-backups`.
+
+Since the generic S3 bucket policy is a little open (and we don't
+want random people reading through our backups), we're going to
+want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
+
+
+```
+{
+  "Statement": [
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:ListAllMyBuckets",
+      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
+    },
+    {
+      "Effect"   : "Allow",
+      "Action"   : "s3:*",
+      "Resource" : [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
 ### Deploying SHIELD
 
 We'll start out with the Genesis template for SHIELD:
@@ -1181,6 +1423,33 @@ networks:
 (Don't forget to change your `subnet` to match your AWS VPC
 configuration.)
 
+Then we need to configure our `store` and a default `schedule` and `retention` policy:
+
+```
+$ cat properties.yml
+---
+meta:
+  az: us-west-2a
+
+properties:
+  shield:
+    skip_ssl_verify: true
+    store:
+      name: "default"
+      plugin: "s3"
+      config:
+        access_key_id: (( vault "secret/aws/proto/shield/aws:access_key" ))
+        secret_access_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
+        bucket: xxxxxx # <- backup's s3 bucket
+        prefix: "/"
+    schedule:
+      name: "default"
+      when: "daily 3am"
+    retention:
+      name: "default"
+      expires: "86400" # 24 hours
+```
+
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the pubic key to our
 Proto-BOSH.  We stuck it in the Vault, at
@@ -1216,51 +1485,11 @@ Director task 13
 ```
 
 Once that's complete, you will be able to access your SHIELD
-deployment, and start configuring your backup jobs.  Before we do
-that, however, let's prepare our Amazon infrastructure to store
-backups in S3, one of SHIELD's built-in archive storage systems.
-
-### Setting up AWS S3 For Backup Archives
-
-To help keep things isolated, we're going to set up a brand new
-IAM user just for backup archive storage.  It's a good idea to
-name this user something like `backup` or `shield-backup` so that
-no one tries to re-purpose it later, and so that it doesn't get
-deleted.
-
-You're also going to want to provision a dedicated S3 bucket to
-store archives in, and name it something descriptive, like
-`codex-backups`.
-
-Since the generic S3 bucket policy is a little open (and we don't
-want random people reading through our backups), we're going to
-want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
-
-
-```
-{
-  "Statement": [
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:ListAllMyBuckets",
-      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
-    },
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:*",
-      "Resource" : [
-        "arn:aws:s3:::your-bucket-name",
-        "arn:aws:s3:::your-bucket-name/*"
-      ]
-    }
-  ]
-}
-```
+deployment, and start configuring your backup jobs.
 
 ### How to use SHIELD
 
-Note: will add how to use SHIELD to backup and restore by using an example.
-
+TODO: Add how to use SHIELD to backup and restore by using an example.
 
 ## Bolo Monitoring
 
@@ -1314,7 +1543,7 @@ Created site aws (from template aws):
 2 directories, 10 files
 ```
 
-(Note: The site name can be different from aws.)
+**NOTE**: The site name can be different from aws.
 
 Now, we can create our environment. We call it proto since we use one bolo for one site for now.
 
@@ -1402,9 +1631,9 @@ ensuring that you get no errors (no output is a good sign).
 
 Then, you can deploy to your BOSH director via `make deploy`.
 
-Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Gnossis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
+Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Genesis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
 
-One way of doing it is using ngrok, go to [ngrok Downloads] [ngrok-download] page and download the right version to your `bolo/0` VM, unzip it and run `./ngrok http 80', it will output something like this:
+One way of doing it is using ngrok, go to [ngrok Downloads] [ngrok-download] page and download the right version to your `bolo/0` VM, unzip it and run `./ngrok http 80`, it will output something like this:
 
 ```
 ngrok by @inconshreveable                                                                                                                                                                   (Ctrl+C to quit)
@@ -1420,7 +1649,8 @@ Connections                   ttl     opn     rt1     rt5     p50     p90
                               0       0       0.00    0.00    0.00    0.00
 ```
 
-Copy the http or https link for forwarding and paste it into your browser, you will be able to visit the Gnossis web interface for bolo.
+Copy the http or https link for forwarding and paste it into your browser, you
+will be able to visit the Genesis web interface for bolo.
 
 Out of the box, the Bolo installation will begin monitoring itself
 for general host health (the `linux` collector), so you should
@@ -1435,9 +1665,9 @@ already there), add the `dbolo` template to all the jobs you want
 monitored, and configure `dbolo` to submit metrics to your
 `bolo/0` VM in the bolo deployment.
 
-(Note that this may require configuration of network ACLs,
-security groups, etc. -- if you experience issues with this step,
-you might want to start looking in those areas first)
+**NOTE**: This may require configuration of network ACLs, security groups, etc.
+If you experience issues with this step, you might want to start looking in
+those areas first.
 
 We will use shield as an example to show you how to configure Bolo Agents.
 
@@ -1593,12 +1823,12 @@ Again starting with Meta lines:
 ---
 meta:
   availability_zone: "us-west-2a"   # Set this to match your first zone "aws_az1"
-  external_url: "https://ci.x.x.x.x.sslip.io"  # Set as Elastic IP address of the Bastion host to allow testing via SSH tunnel
+  external_url: "https://ci.x.x.x.x.sslip.io"  # Set as Elastic IP address of the bastion host to allow testing via SSH tunnel
   ssl_pem: ~
   #  ssl_pem: (( vault meta.vault_prefix "/web_ui:pem" ))
 ```
 
-Be sure to replace the x.x.x.x in the external_url above with the Elastic IP address of the Bastion host.
+Be sure to replace the x.x.x.x in the external_url above with the Elastic IP address of the bastion host.
 
 The `~` means we won't use SSL certs for now.  If you have proper certs or want to use self signed you can add them to vault under the `web_ui:pem` key
 
@@ -1663,8 +1893,8 @@ You can then run on a your local machine
 $ ssh -L 8080:10.4.1.51:80 user@ci.x.x.x.x.sslip.io -i path_to_your_private_key
 ```
 
-and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user` with the jumpbox username on the Bastion host
-and x.x.x.x with the IP address of the Bastion host.
+and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user` with the jumpbox username on the bastion host
+and x.x.x.x with the IP address of the bastion host.
 
 ### Setup Pipelines Using Concourse
 
@@ -1828,7 +2058,7 @@ $ cat networking.yml
 ---
 meta:
   net:
-    subnet: subnet-8a186dee
+    subnet: subnet-xxxxx # <--- your subnet ID here
     security_groups: [wide-open]
     range: 10.4.1.0/24
     gateway: 10.4.1.1
@@ -1939,7 +2169,7 @@ Config
 Tadaaa! Time to commit all the changes to deployment repo, and push to where we're storing
 them long-term.
 
-#### Cloud Foundry
+#### Alpha Cloud Foundry
 
 To deploy CF to our alpha environment, we will need to first ensure we're targeting the right
 Vault/BOSH:
@@ -1953,8 +2183,6 @@ $ safe target ops
 $ bosh target alpha
 Target set to `aws-alpha-bosh-lite'
 ```
-
-Install manually the [certstrap](https://github.com/square/certstrap) tool.
 
 Now we'll create our deployment repo for cloudfoundry:
 
@@ -2197,7 +2425,7 @@ make: *** [deploy] Error 3
 
 ```
 
-All that remains is filling in our networking details, so lets go consult our [Network Plan](https://github.com/starkandwayne/codex/blob/master/network.md). We will place the BOSH director in the staging site's infrastructure network, in the first AZ we have defined (subnet name `staging-infra-1`, CIDR `10.4.32.0/24`). To do that, we'll need to update `networking.yml`:
+All that remains is filling in our networking details, so lets go consult our [Network Plan](https://github.com/starkandwayne/codex/blob/master/network.md). We will place the BOSH director in the staging site's infrastructure network, in the first AZ we have defined (subnet name `staging-infra-0`, CIDR `10.4.32.0/24`). To do that, we'll need to update `networking.yml`:
 
 ```
 $ cat > networking.yml <<EOF
@@ -2209,7 +2437,7 @@ networks:
         gateway:  10.4.32.1
         dns:     [10.4.0.2]
         cloud_properties:
-          subnet: subnet-xxxxxxxx # <-- the AWS Subnet ID for your staging-infra-1 network
+          subnet: subnet-xxxxxxxx # <-- the AWS Subnet ID for your staging-infra-0 network
           security_groups: [wide-open]
         reserved:
           - 10.4.32.2 - 10.4.32.3    # Amazon reserves these
@@ -2294,7 +2522,7 @@ Now it's time to move on to deploying our `beta` (staging) Cloud Foundry!
 
 #### Jumpboxen?
 
-#### Cloud Foundry
+#### Beta Cloud Foundry
 
 To deploy Cloud Foundry, we will go back into our ops directory, making use of `cf-deplyoments` repo
 created when we built our alpha site:
@@ -2371,7 +2599,7 @@ As you might have guessed, the next step will be to see what parameters we need 
 ```
 $ cd aws/staging
 $ make manifest
-57 error(s) detected:
+72 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
  - $.meta.azs.z2: What availability zone should the *_z2 vms be placed in?
  - $.meta.azs.z3: What availability zone should the *_z3 vms be placed in?
@@ -2414,6 +2642,21 @@ $ make manifest
  - $.networks.router2.subnets.0.range: Enter the CIDR address for this subnet
  - $.networks.router2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
  - $.networks.router2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner1.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner1.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner1.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner1.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner2.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner2.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner2.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner3.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner3.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner3.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner3.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner3.subnets.0.static: Enter the static IP ranges for this subnet
  - $.properties.cc.buildpacks.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
  - $.properties.cc.buildpacks.fog_connection.region: Which region are the blobstore S3 buckets in?
@@ -2429,29 +2672,59 @@ $ make manifest
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
-
-
-Failed to merge templates; bailing...
-make: *** [deploy] Error 3
 ```
 
-Oh boy. That's a lot. Cloud Foundry must be compilicated. Looks like a lot of the fog_connection properties are all duplicates though, so lets fill out `properties.yml` with those:
+Oh boy. That's a lot. Cloud Foundry must be complicated. Looks like a lot of the fog_connection properties are all duplicates though, so lets fill out `properties.yml` with those:
 
 ```
 $ cat properties.yml
 ---
 meta:
+  skip_ssl_validation: true
   cf:
     blobstore_config:
       fog_connection:
         aws_access_key_id: (( vault "secret/aws:access_key" ))
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
-        region: us-east-1
+        region: us-west-2
 ```
 
-Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`.
+Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
-**TODO:** make a terraform repo/script for creating RDS instances for your and store their creds + address + dbname  in vault
+```
+$ safe gen 40 secret/aws/staging/cf/rds password
+$ safe get secret/aws/staging/cf/rds
+--- # secret/aws/staging/rds
+password: pqzTtCTz7u32Z8nVlmvPotxHsSfTOvawRjnY7jTW
+```
+
+Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
+
+```
+aws_rds_staging_enabled = "1"
+aws_rds_staging_master_password = "<insert the generated RDS password>"
+```
+
+As a quick pre-flight check, run `make manifest` to compile your Terraform plan, a RDS Cluster and 3 RDS Instances should be created:
+
+```
+$ make manifest
+terraform get -update
+terraform plan -var-file aws.tfvars -out aws.tfplan
+Refreshing Terraform state in-memory prior to plan...
+
+...
+
+Plan: 4 to add, 0 to change, 0 to destroy.
+```
+
+If everything worked out you, deploy the changes:
+
+```
+$ make deploy
+```
+
+**TODO:** Create the `ccdb` and `uaadb` databases inside the RDS Cluster
 
 Now that we have RDS instances, lets refer to them in our `properties.yml` file:
 
@@ -2459,6 +2732,7 @@ Now that we have RDS instances, lets refer to them in our `properties.yml` file:
 cat properties.yml
 ---
 meta:
+  skip_ssl_validation: true
   cf:
     blobstore_config:
       fog_connection:
@@ -2466,13 +2740,89 @@ meta:
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
         region: us-east-1
     ccdb:
-      host: (( vault meta.vault_prefix "/ccdb:host" ))
-      user: (( vault meta.vault_prefix "/ccdb:user" ))
-      pass: (( vault meta.vault_prefix "/ccdb:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
+      user: "admin"
+      pass: (( vault "secret/aws/staging/cf/rds:password" ))
     uaadb:
-      host: (( vault meta.vault_prefix "/uaadb:host" ))
-      user: (( vault meta.vault_prefix "/uaadb:user" ))
-      pass: (( vault meta.vault_prefix "/uaadb:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
+      user: "admin"
+      pass: (( vault "secret/aws/staging/cf/rds:password" ))
+```
+
+Now it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
+
+Create first the CA Certificate:
+
+```
+$ mkdir -p /tmp/certs
+$ cd /tmp/certs
+$ certstrap init --common-name "CertAuth"
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/CertAuth.key
+Created out/CertAuth.crt
+Created out/CertAuth.crl
+```
+
+Then create the certificates for your domain:
+
+```
+$ certstrap request-cert -common-name *.staging.<your domain> -domain *.system.staging.<your domain>,*.apps.staging.<your domain>,*.login.staging.<your domain>,*.uaa.staging.<your domain>
+
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/*.staging.<your domain>.key
+Created out/*.staging.<your domain>.csr
+```
+
+And last, sign the domain certificates with the CA certificate:
+
+```
+$ certstrap sign *.staging.<your domain> --CA CertAuth
+Created out/*.staging.<your domain>.crt from out/*.staging.<your domain>.csr signed by out/CertAuth.key
+```
+
+For safety, let's store the certificates in Vault:
+
+```
+$ cd out
+$ safe write secret/aws/staging/cf/tls/ca "csr@CertAuth.crl"
+$ safe write secret/aws/staging/cf/tls/ca "crt@CertAuth.crt"
+$ safe write secret/aws/staging/cf/tls/ca "key@CertAuth.key"
+$ safe write secret/aws/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
+$ safe write secret/aws/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
+$ safe write secret/aws/staging/cf/tls/domain "key@*.staging.<your domain>.key"
+```
+
+Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
+
+```
+aws_elb_staging_enabled = "1"
+aws_elb_staging_cert_path = "/path/to/the/signed/domain/certificate.crt"
+aws_elb_staging_private_key_path = "/path/to/the/domain/private.key"
+```
+
+As a quick pre-flight check, run `make manifest` to compile your Terraform plan. If everything worked out you, deploy the changes:
+
+```
+$ make deploy
+```
+
+From here we need to configure our domain to point to the ELB. Let's use Route53 to do so. At the AWS Console, create a new _Hosted Zone_ for your domain. Then go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
+
+```
+aws_route53_staging_enabled = "1"
+aws_route53_staging_hosted_zone_id = "XXXXXXXXXXX"
+```
+
+As usual, run `make manifest` to compile your Terraform plan and if everything worked out you, deploy the changes:
+
+```
+$ make deploy
 ```
 
 Lastly, let's make sure to add our Cloud Foundry domain to properties.yml:
@@ -2480,21 +2830,22 @@ Lastly, let's make sure to add our Cloud Foundry domain to properties.yml:
 ```
 ---
 meta:
+  skip_ssl_validation: true
   cf:
-    domain: your.staging.cf.example.com
+    base_domain: staging.<your domain> # <- Your CF domain
     blobstore_config:
       fog_connection:
         aws_access_key_id: (( vault "secret/aws:access_key" ))
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
         region: us-east-1
     ccdb:
-      host: (( vault meta.vault_prefix "/ccdb:host" ))
-      user: (( vault meta.vault_prefix "/ccdb:user" ))
-      pass: (( vault meta.vault_prefix "/ccdb:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
+      user: "admin"
+      pass: (( vault meta.vault_prefix "/rds:password" ))
     uaadb:
-      host: (( vault meta.vault_prefix "/uaadb:host" ))
-      user: (( vault meta.vault_prefix "/uaadb:user" ))
-      pass: (( vault meta.vault_prefix "/uaadb:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
+      user: "admin"
+      pass: (( vault meta.vault_prefix "/rds:password" ))
 ```
 
 And let's see what's left to fill out now:
@@ -2548,8 +2899,8 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
-  elbs: [staging-cf-elb]
+  dns: [10.4.0.2]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 ```
@@ -2564,8 +2915,8 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
-  elbs: [staging-cf-elb]
+  dns: [10.4.0.2]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 
@@ -2581,9 +2932,9 @@ networks:
 - name: router2
   subnets:
   - range: 10.4.35.128/25
-    static: [10.4.35.131 - 10.4.35.227]
-    reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
-    gateway: 10.4.35.128
+    static: [10.4.35.132 - 10.4.35.227]
+    reserved: [10.4.35.130 - 10.4.35.131] # amazon reserves these
+    gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
 - name: cf1
@@ -2608,6 +2959,30 @@ networks:
     static: [10.4.38.4 - 10.4.38.100]
     reserved: [10.4.38.2 - 10.4.38.3] # amazon reserves these
     gateway: 10.4.38.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner1
+  subnets:
+  - range: 10.4.39.0/24
+    static: [10.4.39.4 - 10.4.39.100]
+    reserved: [10.4.39.2 - 10.4.39.3] # amazon reserves these
+    gateway: 10.4.39.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner2
+  subnets:
+  - range: 10.4.40.0/24
+    static: [10.4.40.4 - 10.4.40.100]
+    reserved: [10.4.40.2 - 10.4.40.3] # amazon reserves these
+    gateway: 10.4.40.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner3
+  subnets:
+  - range: 10.4.41.0/24
+    static: [10.4.41.4 - 10.4.41.100]
+    reserved: [10.4.41.2 - 10.4.41.3] # amazon reserves these
+    gateway: 10.4.41.1
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
 ```
@@ -2632,8 +3007,8 @@ meta:
     z1: us-west-2a
     z2: us-west-2b
     z3: us-west-2c
-  dns: 10.4.0.2
-  elbs: [staging-cf-elb]
+  dns: [10.4.0.2]
+  elbs: [xxxxxx-staging-cf-elb] # <- ELB name
   router_security_group: [wide-open]
   security_groups: [wide-open]
 
@@ -2649,9 +3024,9 @@ networks:
 - name: router2
   subnets:
   - range: 10.4.35.128/25
-    static: [10.4.35.131 - 10.4.35.227]
-    reserved: [10.4.35.129 - 10.4.35.130] # amazon reserves these
-    gateway: 10.4.35.128
+    static: [10.4.35.132 - 10.4.35.227]
+    reserved: [10.4.35.130 - 10.4.35.131] # amazon reserves these
+    gateway: 10.4.35.129
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
 - name: cf1
@@ -2678,16 +3053,36 @@ networks:
     gateway: 10.4.38.1
     cloud_properties:
       subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner1
+  subnets:
+  - range: 10.4.39.0/24
+    static: [10.4.39.4 - 10.4.39.100]
+    reserved: [10.4.39.2 - 10.4.39.3] # amazon reserves these
+    gateway: 10.4.39.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner2
+  subnets:
+  - range: 10.4.40.0/24
+    static: [10.4.40.4 - 10.4.40.100]
+    reserved: [10.4.40.2 - 10.4.40.3] # amazon reserves these
+    gateway: 10.4.40.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
+- name: runner3
+  subnets:
+  - range: 10.4.41.0/24
+    static: [10.4.41.4 - 10.4.41.100]
+    reserved: [10.4.41.2 - 10.4.41.3] # amazon reserves these
+    gateway: 10.4.41.1
+    cloud_properties:
+      subnet: subnet-XXXXXX # <--- your subnet ID here
 
 properties:
   cc:
     security_group_definitions:
-    - name: load_balancer:
-      rules:
-      - destination: YOUR LOAD BALANCER IP1
-        protocol: all
-      - destination: YOUR LOAD BALANCER IP2
-        protocol: all
+    - name: load_balancer
+      rules: []
     - name: services
       rules:
       - destination: 10.4.42.0-10.4.44.255
@@ -2721,6 +3116,33 @@ Deployed 'aws-staging-cf' to 'aws-staging-bosh'
 
 ```
 
+You may encounter the following error when you are deploying Beta CF.
+
+```
+Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running instance(s). You requested at least 1.
+```
+
+Amaze has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
+
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/aws/staging` directory. In the following example, you scale runners in both AZ to 2 and you change resource pool `small_z1` to use `m3.medium` type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+
+```
+jobs:
+
+- name: runner_z1
+  instances: 2
+
+- name: runner_z2
+  instances: 2
+
+resource_pools:
+
+- name: small_z1
+  cloud_properties:
+    instance_type: m3.medium
+
+```
+
 After a long while of compiling and deploying VMs, your CF should now be up, and accessible! You can
 check the sanity of the deployment via `genesis bosh run errand smoke_tests`. Target it using
 `cf login -a https://api.system.<your CF domain>`. The admin user's password can be retrieved
@@ -2731,23 +3153,30 @@ correct ELB for this environment, and that the ELB has the correct SSL certifica
 
 Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
 
-
 ### Next Steps
 
 Lather, rinse, repeat for all additional environments (dev, prod, loadtest, whatever's applicable to the client).
 
+[//]: # (Links, please keep in alphabetical order)
 
-[aws-subnets]: http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
-[bolo]:        https://github.com/cloudfoundry-community/bolo-boshrelease
-[cfconsul]:    https://docs.cloudfoundry.org/concepts/architecture/#bbs-consul
-[cfetcd]:      https://docs.cloudfoundry.org/concepts/architecture/#etcd
-[DRY]:         https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
-[jumpbox]:     https://github.com/starkandwayne/jumpbox
-[netplan]:     https://github.com/starkandwayne/codex/blob/master/network.md
-[infra-ips]:   https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
-[spruce-129]:  https://github.com/geofffranks/spruce/issues/129
-[slither]:     http://slither.io
-[amazon-keys]: https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName
-[az]:          http://aws.amazon.com/about-aws/global-infrastructure/
 [amazon-region-doc]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html
-[ngrok-download]: https://ngrok.com/download
+[aws]:               https://signin.aws.amazon.com/console
+[aws-subnets]:       http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
+[az]:                http://aws.amazon.com/about-aws/global-infrastructure/
+[bolo]:              https://github.com/cloudfoundry-community/bolo-boshrelease
+[cfconsul]:          https://docs.cloudfoundry.org/concepts/architecture/#bbs-consul
+[cfetcd]:            https://docs.cloudfoundry.org/concepts/architecture/#etcd
+[DRY]:               https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+[jumpbox]:           https://github.com/starkandwayne/jumpbox
+[netplan]:           https://github.com/starkandwayne/codex/blob/master/network.md
+[ngrok-download]:    https://ngrok.com/download
+[infra-ips]:         https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
+[spruce-129]:        https://github.com/geofffranks/spruce/issues/129
+[slither]:           http://slither.io
+[troubleshooting]:   troubleshooting.md
+[verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
+
+[//]: # (Images, put in /images folder)
+
+[bosh_levels]:       images/levels_of_bosh.png "Levels of Bosh"
+[bastion_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
