@@ -1411,6 +1411,36 @@ resource "aws_security_group" "cf-db" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+resource "aws_security_group" "cf-elb" {
+  name        = "cf-elb"
+  description = "Allow 80,443 and 4443 in"
+  vpc_id      = "${aws_vpc.default.id}"
+  tags { Name = "${var.aws_vpc_name}-cf-elb" }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 4443
+    to_port     = 4443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 resource "aws_security_group" "cf-ssh-elb" {
   name = "cf-ssh-elb"
   description = "Allow only 2222 in"
@@ -1611,7 +1641,7 @@ resource "aws_iam_server_certificate" "dev-cf-elb-cert" {
 resource "aws_elb" "dev-cf-elb" {
   count                     = "${var.aws_elb_dev_enabled}"
   name                      = "${var.aws_vpc_name}-dev-cf-elb"
-  security_groups           = ["${aws_security_group.dmz.id}"]
+  security_groups           = ["${aws_security_group.cf-elb.id}"]
   subnets                   = ["${aws_subnet.dev-cf-edge-0.id}","${aws_subnet.dev-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
@@ -1688,7 +1718,7 @@ resource "aws_iam_server_certificate" "staging-cf-elb-cert" {
 resource "aws_elb" "staging-cf-elb" {
   count                     = "${var.aws_elb_staging_enabled}"
   name                      = "${var.aws_vpc_name}-staging-cf-elb"
-  security_groups           = ["${aws_security_group.dmz.id}"]
+  security_groups           = ["${aws_security_group.cf-elb.id}"]
   subnets                   = ["${aws_subnet.staging-cf-edge-0.id}","${aws_subnet.staging-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
@@ -1765,7 +1795,7 @@ resource "aws_iam_server_certificate" "prod-cf-elb-cert" {
 resource "aws_elb" "prod-cf-elb" {
   count                     = "${var.aws_elb_prod_enabled}"
   name                      = "${var.aws_vpc_name}-prod-cf-elb"
-  security_groups           = ["${aws_security_group.dmz.id}"]
+  security_groups           = ["${aws_security_group.cf-elb.id}"]
   subnets                   = ["${aws_subnet.prod-cf-edge-0.id}","${aws_subnet.prod-cf-edge-1.id}"]
   cross_zone_load_balancing = true
   idle_timeout              = 3600
