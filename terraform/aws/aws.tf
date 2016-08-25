@@ -1411,6 +1411,19 @@ resource "aws_security_group" "cf-db" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+resource "aws_security_group" "cf-ssh-elb" {
+  name = "cf-ssh-elb"
+  description = "Allow only 2222 in"
+  vpc_id = "${aws_vpc.default.id}"
+  tags { Name = "${var.aws_vpc_name}-cf-ssh-elb" }
+
+  ingress {
+    from_port   = 2222
+    to_port     = 2222
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 resource "aws_security_group" "openvpn" {
   name = "openvpn"
   description = "Allow only 443 in"
