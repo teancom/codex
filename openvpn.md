@@ -156,7 +156,7 @@ meta:
   certs:
     ca: (( vault meta.vault_prefix "/ca:cert" ))
     crl: (( vault meta.vault_prefix "/crl:pem" ))
-    dh: (( vault meta.vault_prefix "/dh:pem" ))
+    dh: (( vault meta.vault_prefix "/dhparam:pem" ))
     server: (( vault meta.vault_prefix "/server:cert" ))
     server_key: (( vault meta.vault_prefix "/server:key" ))
   client_routes:
@@ -276,13 +276,13 @@ Time to generate certificates. This used to be convoluted, but as of [safe v0.0.
 this is a lot easier:
 
 ```
-$ safe cert secret/aws/proto/openvpn/certs/server.openvpn
+$ safe cert openvpn secret/aws/proto/openvpn/certs/server.openvpn
 ```
 
 Now we need to generate certs for each user:
 
 ```
-$ safe cert secret/aws/proto/openvpn/certs/user1.openvpn
+$ safe cert openvpn secret/aws/proto/openvpn/certs/user1.openvpn
 $ # repeat for all users, and distribute cert/keys to end-users securely
 ```
 
@@ -293,8 +293,9 @@ the route to our VPC for the VPN to advertise:
 $ cat properties.yml
 meta:
   certs:
-    ca: (( vault meta.vault_prefix "/ca:ca_pem"
-    crl: (( vault meta.vault_prefix "/crl:crl_pem"
+    ca: (( vault meta.vault_prefix "/ca:ca_pem" ))
+    crl: (( vault meta.vault_prefix "/crl:crl_pem" ))
+    dh: (( vault meta.vault_prefix "dhparam:pem" ))
     server: (( vault meta.vault_prefix "/certs/server.openvpn:cert" ))
     key: (( vault meta.vault_prefix "/certs/server.openvpn:key" ))
   client_routes:
@@ -391,15 +392,8 @@ BOSH:
 
 ```
 # revoke:
-$ safe curl POST pki/revoke '{"serial_number":"<certificate serial number>"}'
-$ curl https://10.4.1.16:8200/pki/crl/pem -k
-$ cat crl.yml
----
-secret/aws/proto/openvpn/crl:
-  pem: |
-    CRL PEM GOES HERE
-$ spruce json crl.yml | safe import
-$ rm crl.yml
+$ safe revoke secret/aws/openvpn/proto/certs/<cert-to-revoke>
+$ safe crl-pem secret/aws/openvpn/crl
 $ make deploy
 ```
 
