@@ -439,9 +439,9 @@ via the newly created _proto-BOSH_ server with the `bosh_cli`.
 This model gives BOSH operators all the benefits of BOSH, applied to the
 director: Monitoring, Caching, Recovery, Lifecycle, etc.
 
-### Proto-Vault
+### Dev-Vault
 
-![proto-vault][bastion_1]
+![dev-Vault][bastion_1]
 
 BOSH has secrets.  Lots of them.  Components like NATS and the database rely on
 secure passwords for inter-component interaction.  Ideally, we'd have a spinning
@@ -453,7 +453,7 @@ using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded
 Vault server instance **on the bastion host**, and then migrate the credentials to
 the real Vault later.
 
-This we call a _proto-Vault_.  Because it precedes the _proto-BOSH_ and Vault
+This we call a _dev-Vault_.  Because it precedes the _proto-BOSH_ and Vault
 deploy we'll be setting up later.
 
 The `jumpbox` script that we ran as part of setting up the bastion host installs
@@ -463,7 +463,7 @@ interacting with Vault (`safe`), but also the Vault server daemon itself.
 #### Start Server
 
 Were going to start the server and do an overview of what the output means.  To
-start the _proto-Vault_, run the `vault server` with the `-dev` flag.
+start the _dev-Vault_, run the `vault server` with the `-dev` flag.
 
 ```
 $ vault server -dev
@@ -505,7 +505,7 @@ Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
 in the foreground using either a `tmux` session or a separate ssh tab.  Also, we
 do need to capture the output of the `Root Token`.
 
-#### Setup Proto-Vault
+#### Setup dev-Vault
 
 In order to setup the _proto_Vault_ we need to target the server and authenticate.
 We use `safe` as our CLI to do both commands.
@@ -527,9 +527,9 @@ Authenticating against proto at http://127.0.0.1:8200
 Token: <paste your Root Token here>
 ```
 
-#### Test Proto-Vault
+#### Test dev-Vault
 
-Here's a smoke test to see if you've setup the _proto-Vault_ correctly.
+Here's a smoke test to see if you've setup the _dev-Vault_ correctly.
 
 ```
 $ safe set secret/handshake knock=knock
@@ -646,7 +646,7 @@ Created environment infra-aws/proto:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and stored them in
-our _proto-Vault_, under the `secret/infra-aws/proto/bosh` subtree.  Later, we'll
+our _dev-Vault_, under the `secret/infra-aws/proto/bosh` subtree.  Later, we'll
 migrate this subtree over to our real Vault, once it is up and spinning.
 
 #### Make Manifest
@@ -932,7 +932,7 @@ or grab a cup of tea.)
 
 All done?  Verify the deployment by trying to `bosh target` the
 newly-deployed Director.  First you're going to need to get the
-password out of our _proto-Vault_.
+password out of our _dev-Vault_.
 
 ```
 $ safe get secret/aws/proto/bosh/users/admin
@@ -1154,7 +1154,7 @@ unseal the Vault so that you can interact with it.
 First off, we need to find the IP addresses of our Vault nodes:
 
 ```
-$ bosh vms aws-proto-vault
+$ bosh vms aws-dev-Vault
 +---------------------------------------------------+---------+-----+----------+-----------+
 | VM                                                | State   | AZ  | VM Type  | IPs       |
 +---------------------------------------------------+---------+-----+----------+-----------+
@@ -1206,7 +1206,7 @@ your Vault will remain permanently sealed.
 **Store these seal keys and the root token somewhere safe!!**
 (A password manager like 1password is an excellent option here.)
 
-Unlike the dev-mode proto-Vault we spun up at the very outset,
+Unlike the dev-mode dev-Vault we spun up at the very outset,
 this Vault comes up sealed, and needs to be unsealed using three
 of the five keys above, so let's do that.
 
@@ -1245,7 +1245,7 @@ knock: knock
 
 ### Migrating Credentials
 
-You should now have two `safe` targets, one for the proto-Vault
+You should now have two `safe` targets, one for the dev-Vault
 (named 'proto') and another for the real Vault (named 'ops'):
 
 ```
@@ -1270,7 +1270,7 @@ Now targeting ops at https://10.4.1.16:8200
 
 `safe` supports a handy import/export feature that can be used to
 move credentials securely between Vaults, without touching disk,
-which is exactly what we need to migrate from our proto-Vault to
+which is exactly what we need to migrate from our dev-Vault to
 our real one:
 
 ```
@@ -1340,7 +1340,7 @@ Now targeting ops at https://10.4.1.16:8200
 ```
 
 Voila!  We now have all of our credentials in our real Vault, and
-we can kill the proto-Vault server process!
+we can kill the dev-Vault server process!
 
 ```
 $ sudo pkill vault
@@ -3234,7 +3234,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 
 [bosh_levels]:       images/levels_of_bosh.png "Levels of Bosh"
 [bastion_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
-[bastion_1]:         images/bastion_step_1.png "proto-Vault"
+[bastion_1]:         images/bastion_step_1.png "dev-Vault"
 [bastion_2]:         images/bastion_step_2.png "proto-BOSH"
 [bastion_3]:         images/bastion_step_3.png "Vault"
 [bastion_4]:         images/bastion_step_4.png "Shield"

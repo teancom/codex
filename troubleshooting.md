@@ -29,7 +29,7 @@ Chances are you did not run the `jumpbox` script, refer to [the Bastion/Jumpbox 
 and make sure that you remain logged in as your Jumpbox user during the rest of
 the deployment process. Nothing is done from the default bastion user.
 
-### ProtoBosh & Proto-Vault
+### ProtoBosh & dev-Vault
 
 ```
 Error Deploying Proto-BOSH with Shield Agent Job
