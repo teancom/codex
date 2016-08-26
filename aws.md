@@ -422,12 +422,15 @@ In Genesis there are three layers where the templates are divided.
 * Site
 * Environment
 
-When it comes to Genesis, we're doing to deploy to the `infra` site in the
+When it comes to Genesis, we're doing to deploy to the `infra-aws` site in the
 `proto` environment.
 
-So far you've Setup Credentials, Used Terraform to construct the IaaS Components
-and Configured a Bastion Host.  We're ready now to setup a BOSH Director on the
-bastion.  
+Your client may have more than one infrastructure they will deploy to, name the
+site according to their needs.
+
+By this point, you've Setup Credentials, Used Terraform to construct the IaaS
+components and Configured a Bastion Host.  We're ready now to setup a BOSH
+Director on the bastion.  
 
 We are going to deploy it with `bosh-init`.  Once this BOSH Director is installed,
 it will enable us to deploy however many environment-specific BOSH directors
@@ -552,8 +555,8 @@ be created.
 First setup a `deploy` folder in your user's home directory.
 
 ```
-$ mkdir -p ~/deploy
-$ cd ~/deploy
+$ mkdir -p ~/deployments
+$ cd ~/deployments
 ```
 
 Genesis has a template for BOSH deployments (including support for the
@@ -573,12 +576,12 @@ quickly, including:
 - `openstack` for OpenStack tenant deployments
 
 Since this guide is AWS, we will use the `--template aws` AWS template and give
-it a name of `infra`.
+it a name of `infra-aws`.
 
 ```
-$ genesis new site --template aws infra
-Created site infra (from template aws):
-~/deploy/docs/bosh-deployments/aws
+$ genesis new site --template aws infra-aws
+Created site infra-aws (from template aws):
+~/deployments/docs/bosh-deployments/aws
 ├── README
 └── site
     ├── README
@@ -599,19 +602,19 @@ Created site infra (from template aws):
 ```
 
 Finally, let's create our new environment, and name it `proto`
-(that's `infra/proto`, formally speaking).
+(that's `infra-aws/proto`, formally speaking).
 
 ```
-$ genesis new environment --type bosh-init infra proto
-Running env setup hook: ~/deploy/bosh-deployments/.env_hooks/setup
+$ genesis new environment --type bosh-init infra-aws proto
+Running env setup hook: ~/deployments/bosh-deployments/.env_hooks/setup
 
  proto  http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]
 yes
-Setting up credentials in vault, under secret/infra/proto/bosh
+Setting up credentials in vault, under secret/infra-aws/proto/bosh
 .
-└── secret/infra/proto/bosh
+└── secret/infra-aws/proto/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -623,8 +626,8 @@ Setting up credentials in vault, under secret/infra/proto/bosh
     └── vcap
 
 
-Created environment infra/proto:
-~/deploy/bosh-deployments/infra/proto
+Created environment infra-aws/proto:
+~/deployments/bosh-deployments/infra-aws/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -643,7 +646,7 @@ Created environment infra/proto:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and stored them in
-our _proto-Vault_, under the `secret/infra/proto/bosh` subtree.  Later, we'll
+our _proto-Vault_, under the `secret/infra-aws/proto/bosh` subtree.  Later, we'll
 migrate this subtree over to our real Vault, once it is up and spinning.
 
 #### Make Manifest
@@ -653,7 +656,7 @@ can create a manifest, or (a more likely case) we still have to
 provide some critical information:
 
 ```
-$ cd infra/proto
+$ cd infra-aws/proto
 $ make manifest
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
@@ -902,8 +905,8 @@ No existing genesis-created bosh-init statefile detected. Please
 help genesis find it.
 Path to existing bosh-init statefile (leave blank for new
 deployments):
-Deployment manifest: '~/deploy/bosh-deployments/aws/proto/manifests/.deploy.yml'
-Deployment state: '~/deploy/bosh-deployments/aws/proto/manifests/.deploy-state.json'
+Deployment manifest: '~/deployments/bosh-deployments/aws/proto/manifests/.deploy.yml'
+Deployment state: '~/deployments/bosh-deployments/aws/proto/manifests/.deploy-state.json'
 
 Started validating
   Downloading release 'bosh'... Finished (00:00:09)
@@ -982,7 +985,7 @@ Now that we have a proto-BOSH director, we can use it to deploy
 our real Vault.  We'll start with the Genesis template for Vault:
 
 ```
-$ cd ~/deploy
+$ cd ~/deployments
 $ genesis new deployment --template vault
 $ cd vault-deployments
 ```
@@ -1403,7 +1406,7 @@ want to create our own policy. Go to the IAM user you just created, click `permi
 We'll start out with the Genesis template for SHIELD:
 
 ```
-$ cd ~/deploy
+$ cd ~/deployments
 $ genesis new deployment --template shield
 $ cd shield-deployments
 ```
@@ -1556,7 +1559,7 @@ To get started, you're going to need to create a Genesis
 deployments repo for your Bolo deployments:
 
 ```
-$ cd ~/deploy
+$ cd ~/deployments
 $ genesis new deployment --template bolo
 $ cd bolo-deployments
 ```
@@ -1574,7 +1577,7 @@ For purposes of illustration, let's choose `aws`:
 ```
 $ genesis new site --template aws aws
 Created site aws (from template aws):
-~/deploy/bolo-deployments/aws
+~/deployments/bolo-deployments/aws
 ├── README
 └── site
     ├── disk-pools.yml
@@ -1599,7 +1602,7 @@ Now, we can create our environment. We call it proto since we use one bolo for o
 $ cd aws/
 $ genesis new environment proto
 Created environment aws/proto:
-~/deploy/bolo-deployments/aws/proto
+~/deployments/bolo-deployments/aws/proto
 ├── Makefile
 ├── README
 ├── cloudfoundry.yml
@@ -1722,7 +1725,7 @@ We will use shield as an example to show you how to configure Bolo Agents.
 To add the release:
 
 ```
-$ cd ~/deploy/shield-deployments
+$ cd ~/deployments/shield-deployments
 $ genesis add release bolo latest
 $ cd aws/proto
 $ genesis use release bolo
@@ -1786,7 +1789,7 @@ Now targeting ops at https://10.4.1.16:8200
 ```
 
 
-From the `~/deploy` folder let's generate a new `concourse` deployment, using the `--template` flag.
+From the `~/deployments` folder let's generate a new `concourse` deployment, using the `--template` flag.
 
 ```
 $ genesis new deployment --template concourse
@@ -1818,7 +1821,7 @@ Created site aws (from template aws):
 Finally now, because our vault is setup and targeted correctly we can generate our `environment` level configurations.  And begin the process of setting up the specific parameters for our environment.
 
 ```
-~/deploy/concourse-deployments$ genesis new environment aws proto
+~/deployments/concourse-deployments$ genesis new environment aws proto
 Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/00_confirm_vault
 
 (*) ops   https://10.4.1.16:8200
@@ -1844,8 +1847,8 @@ Created environment aws/proto:
 
 Lets make the manifest
 ```
-~/deploy/concourse-deployments$ cd aws/proto/
-~/deploy/concourse-deployments/aws/proto$ make manifest
+~/deployments/concourse-deployments$ cd aws/proto/
+~/deployments/concourse-deployments/aws/proto$ make manifest
 11 error(s) detected:
  - $.compilation.cloud_properties.availability_zone: What availability zone should your concourse VMs be in?
  - $.jobs.haproxy.templates.haproxy.properties.ha_proxy.ssl_pem: Want ssl? define a pem
@@ -1863,13 +1866,13 @@ Lets make the manifest
 Failed to merge templates; bailing...
 Makefile:22: recipe for target 'manifest' failed
 make: *** [manifest] Error 5
-~/deploy/concourse-deployments/aws/proto$
+~/deployments/concourse-deployments/aws/proto$
 ```
 
 Again starting with Meta lines:
 
 ```
-~/deploy/concourse-deployments/aws/proto$ cat properties.yml
+~/deployments/concourse-deployments/aws/proto$ cat properties.yml
 ---
 meta:
   availability_zone: "us-west-2a"   # Set this to match your first zone "aws_az1"
@@ -1884,7 +1887,7 @@ The `~` means we won't use SSL certs for now.  If you have proper certs or want 
 
 For networking, we put this inside proto environment level.
 ```
-~/deploy/concourse-deployments/aws/proto$ cat networking.yml
+~/deployments/concourse-deployments/aws/proto$ cat networking.yml
 ---
 networks:
   - name: concourse
@@ -1906,7 +1909,7 @@ networks:
 After it is deployed, you can do a quick test by hitting the HAProxy machine
 
 ```
-~/deploy/concourse-deployments/aws/proto$ bosh vms aws-proto-concourse
+~/deployments/concourse-deployments/aws/proto$ bosh vms aws-proto-concourse
 Acting as user 'admin' on deployment 'aws-proto-concourse' on 'aws-proto-bosh'
 
 Director task 43
@@ -1925,7 +1928,7 @@ Task 43 done
 +--------------------------------------------------+---------+-----+---------+------------+
 
 VMs total: 6
-~/deploy/concourse-deployments/aws/proto$ curl -i 10.4.1.51
+~/deployments/concourse-deployments/aws/proto$ curl -i 10.4.1.51
 HTTP/1.1 200 OK
 Date: Thu, 07 Jul 2016 04:50:05 GMT
 Content-Type: text/html; charset=utf-8
@@ -1965,7 +1968,7 @@ Since our `alpha` site will be a bosh lite running on AWS, we will need to deplo
 First, lets make sure we're in the right place, targetting the right Vault:
 
 ```
-$ cd ~/deploy
+$ cd ~/deployments
 $ safe target ops
 Now targeting ops at https://10.4.1.16:8200
 ```
@@ -2225,7 +2228,7 @@ To deploy CF to our alpha environment, we will need to first ensure we're target
 Vault/BOSH:
 
 ```
-$ cd ~/deploy
+$ cd ~/deployments
 $ safe target ops
 
 (*) ops	https://10.4.1.16:8200
@@ -2366,7 +2369,7 @@ Now that our `alpha` environment has been deployed, we can deploy our first beta
 
 #### BOSH
 ```
-$ cd ~/deploy/bosh-deployments
+$ cd ~/deployments/bosh-deployments
 $ bosh target proto-bosh
 $ ls
 aws  bin  global  LICENSE  README.md
@@ -2578,7 +2581,7 @@ To deploy Cloud Foundry, we will go back into our ops directory, making use of `
 created when we built our alpha site:
 
 ```
-$ cd ~/deploy/cf-deployments
+$ cd ~/deployments/cf-deployments
 ```
 
 Also, make sure that you're targeting the right Vault, for good measure:
