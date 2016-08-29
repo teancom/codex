@@ -1441,6 +1441,7 @@ resource "aws_security_group" "cf-elb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
 resource "aws_security_group" "cf-ssh-elb" {
   name = "cf-ssh-elb"
   description = "Allow only 2222 in"
