@@ -2724,9 +2724,17 @@ If everything worked out you, deploy the changes:
 $ make deploy
 ```
 
-**TODO:** Create the `ccdb` and `uaadb` databases inside the RDS Cluster
+**TODO:** Create the `ccdb` and `uaadb` databases inside the RDS Instance.
 
-Now that we have RDS instances, lets refer to them in our `properties.yml` file:
+We will manually create uaadb and ccdb for now. First, connect to your PostgreSql database using the following command.
+
+```
+psql postgres://cfdbadmin:your_password@your_rds_instance_endpoint:5432/postgres
+```
+
+Then run `create database uaadb` and `create database ccdb`. You also need to `create extension citext` on both of your databases. 
+
+Now that we have RDS instance and `ccdb` and `uaadb` databases created inside it, lets refer to them in our `properties.yml` file:
 
 ```
 cat properties.yml
@@ -2740,14 +2748,17 @@ meta:
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
         region: us-east-1
     ccdb:
-      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
-      user: "admin"
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      scheme: postgres
+      user: "cfdbadmin"
       pass: (( vault "secret/aws/staging/cf/rds:password" ))
     uaadb:
-      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
-      user: "admin"
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      scheme: postgresql
+      user: "cfdbadmin"
       pass: (( vault "secret/aws/staging/cf/rds:password" ))
 ```
+
 
 Now it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
 

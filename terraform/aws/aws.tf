@@ -22,8 +22,10 @@ variable "aws_az3"        { default = "c" }
 variable "aws_rds_dev_enabled"     { default = 0 } # Set to 1 to create the DEV RDS cluster
 variable "aws_rds_staging_enabled" { default = 0 } # Set to 1 to create the STAGING RDS cluster
 variable "aws_rds_prod_enabled"    { default = 0 } # Set to 1 to create the PROD RDS cluster
-
-variable "aws_rds_master_user"             { default = "admin" } # Username for RDS Databases
+variable "aws_rds_dev_instance_class"    { default = "db.t2.small" } # Instance Class for DEV RDS Databases
+variable "aws_rds_staging_instance_class"    { default = "db.t2.small" } # Instance Class for STAGING RDS Databases
+variable "aws_rds_prod_instance_class"    { default = "db.t2.small" } # Instance Class for PROD RDS Databases
+variable "aws_rds_master_user"             { default = "cfdbadmin" } # Username for RDS Databases
 variable "aws_rds_dev_master_password"     { default = "admin" } # Password for DEV RDS Databases
 variable "aws_rds_staging_master_password" { default = "admin" } # Password for STAGING RDS Databases
 variable "aws_rds_prod_master_password"    { default = "admin" } # Password for PROD RDS Databases
@@ -1399,8 +1401,8 @@ resource "aws_security_group" "cf-db" {
   tags { Name = "${var.aws_vpc_name}-cf-db" }
 
   ingress {
-    from_port   = 3306
-    to_port     = 3306
+    from_port   = 5432 
+    to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -1510,114 +1512,73 @@ output "box.nat.public" {
 ##     ## ########   ######
 
 ###############################################################
-# DEV-CF-DB MySQL Cluster (AWS Aurora)
+# DEV-CF-DB AWS RDS PostgreSql DB
 #
-resource "aws_rds_cluster" "dev-cf-db" {
+resource "aws_db_instance" "dev-cf-db" {
   count                   = "${var.aws_rds_dev_enabled}"
-  cluster_identifier      = "${var.aws_vpc_name}-dev-cf-db"
+  identifier              = "${var.aws_vpc_name}-dev-cf-db"
+  allocated_storage       = 50
+  engine                  = "postgres"
+  engine_version          = "9.5.2"
+  instance_class          = "${var.aws_rds_dev_instance_class}"
+  username                = "${var.aws_rds_master_user}"
+  password                = "${var.aws_rds_dev_master_password}" 
+  port                    = "5432"
   db_subnet_group_name    = "${aws_db_subnet_group.dev-cf-db.name}"
-  availability_zones      = ["${var.aws_region}${var.aws_az1}", "${var.aws_region}${var.aws_az2}","${var.aws_region}${var.aws_az3}"]
+  multi_az                = true
   vpc_security_group_ids  = ["${aws_security_group.cf-db.id}"]
-  master_username         = "${var.aws_rds_master_user}"
-  master_password         = "${var.aws_rds_dev_master_password}"
   backup_retention_period = 5
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
-resource "aws_rds_cluster_instance" "dev-cf-db" {
-  count                = "${3 * var.aws_rds_dev_enabled}"
-  identifier           = "${var.aws_vpc_name}-dev-cf-db-${count.index}"
-  cluster_identifier   = "${aws_rds_cluster.dev-cf-db.id}"
-  db_subnet_group_name = "${aws_db_subnet_group.dev-cf-db.name}"
-  instance_class       = "db.r3.large"
-  publicly_accessible  = false
 
-  lifecycle {
-    prevent_destroy = true
-  }
-}
 output "aws.rds.dev-cf-db.endpoint" {
-  value = "${aws_rds_cluster.dev-cf-db.endpoint}"
-}
-output "aws.rds.dev-cf-db.port" {
-  value = "${aws_rds_cluster.dev-cf-db.port}"
+  value = "${aws_db_instance.dev-cf-db.endpoint}"
 }
 
 ###############################################################
-# STAGING-CF-DB MySQL Cluster (AWS Aurora)
+# STAGING-CF-DB AWS RDS PostgreSql DB
 #
-resource "aws_rds_cluster" "staging-cf-db" {
+resource "aws_db_instance" "staging-cf-db" {
   count                   = "${var.aws_rds_staging_enabled}"
-  cluster_identifier      = "${var.aws_vpc_name}-dev-staging-db"
+  identifier              = "${var.aws_vpc_name}-staging-cf-db"
+  allocated_storage       = 50
+  engine                  = "postgres"
+  engine_version          = "9.5.2"
+  instance_class          = "${var.aws_rds_staging_instance_class}"
+  username                = "${var.aws_rds_master_user}"
+  password                = "${var.aws_rds_staging_master_password}" 
+  port                    = "5432"
   db_subnet_group_name    = "${aws_db_subnet_group.staging-cf-db.name}"
-  availability_zones      = ["${var.aws_region}${var.aws_az1}", "${var.aws_region}${var.aws_az2}","${var.aws_region}${var.aws_az3}"]
+  multi_az                = true 
   vpc_security_group_ids  = ["${aws_security_group.cf-db.id}"]
-  master_username         = "${var.aws_rds_master_user}"
-  master_password         = "${var.aws_rds_staging_master_password}"
   backup_retention_period = 5
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
-resource "aws_rds_cluster_instance" "staging-cf-db" {
-  count                = "${3 * var.aws_rds_staging_enabled}"
-  identifier           = "${var.aws_vpc_name}-staging-cf-db-${count.index}"
-  cluster_identifier   = "${aws_rds_cluster.staging-cf-db.id}"
-  db_subnet_group_name = "${aws_db_subnet_group.staging-cf-db.name}"
-  instance_class       = "db.r3.large"
-  publicly_accessible  = false
 
-  lifecycle {
-    prevent_destroy = true
-  }
-}
 output "aws.rds.staging-cf-db.endpoint" {
-  value = "${aws_rds_cluster.staging-cf-db.endpoint}"
-}
-output "aws.rds.staging-cf-db.port" {
-  value = "${aws_rds_cluster.staging-cf-db.port}"
+  value = "${aws_db_instance.staging-cf-db.endpoint}"
 }
 
 ###############################################################
-# PROD-CF-DB MySQL Cluster (AWS Aurora)
+# PROD-CF-DB AWS RDS PostgreSql DB
 #
-resource "aws_rds_cluster" "prod-cf-db" {
+resource "aws_db_instance" "prod-cf-db" {
   count                   = "${var.aws_rds_prod_enabled}"
-  cluster_identifier      = "${var.aws_vpc_name}-prod-staging-db"
+  identifier              = "${var.aws_vpc_name}-prod-cf-db"
+  allocated_storage       = 50
+  engine                  = "postgres"
+  engine_version          = "9.5.2"
+  instance_class          = "${var.aws_rds_prod_instance_class}"
+  username                = "${var.aws_rds_master_user}"
+  password                = "${var.aws_rds_prod_master_password}" 
+  port                    = "5432"
   db_subnet_group_name    = "${aws_db_subnet_group.prod-cf-db.name}"
-  availability_zones      = ["${var.aws_region}${var.aws_az1}", "${var.aws_region}${var.aws_az2}","${var.aws_region}${var.aws_az3}"]
+  multi_az                = true
   vpc_security_group_ids  = ["${aws_security_group.cf-db.id}"]
-  master_username         = "${var.aws_rds_master_user}"
-  master_password         = "${var.aws_rds_prod_master_password}"
   backup_retention_period = 5
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
-resource "aws_rds_cluster_instance" "prod-cf-db" {
-  count                = "${3 * var.aws_rds_prod_enabled}"
-  identifier           = "${var.aws_vpc_name}-prod-cf-db-${count.index}"
-  cluster_identifier   = "${aws_rds_cluster.prod-cf-db.id}"
-  db_subnet_group_name = "${aws_db_subnet_group.prod-cf-db.name}"
-  instance_class       = "db.r3.large"
-  publicly_accessible  = false
 
-  lifecycle {
-    prevent_destroy = true
-  }
-}
 output "aws.rds.prod-cf-db.endpoint" {
-  value = "${aws_rds_cluster.prod-cf-db.endpoint}"
+  value = "${aws_db_instance.prod-cf-db.endpoint}"
 }
-output "aws.rds.prod-cf-db.port" {
-  value = "${aws_rds_cluster.prod-cf-db.port}"
-}
-
-
 
 ######## ##       ########
 ##       ##       ##     ##
