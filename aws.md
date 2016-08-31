@@ -1003,13 +1003,13 @@ the `ops` environment inside of that site.
 
 ```
 $ genesis new site --template aws us-west-2
-$ genesis new environment aws proto
+$ genesis new environment us-west-2 proto
 ```
 
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.
 
 ```
-$ cd aws/ops
+$ cd aws/proto
 $ make manifest
 10 error(s) detected:
  - $.compilation.cloud_properties.availability_zone: Define the z1 AWS availability zone
@@ -1959,7 +1959,6 @@ and x.x.x.x with the IP address of the bastion host.
 ### Setup Pipelines Using Concourse
 
 To do: Need an example to show how to setup pipeline for deployments using Concourse.
-
 
 ## Building out Sites and Environments
 
