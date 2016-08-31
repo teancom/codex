@@ -88,4 +88,4 @@ lamp?" "**I Love Lamp.**"
 
 [//]: # (Images, put in /images folder)
 
-[merica]:     images/merica.png "'Merica Pew Pew"
+[merica]:     images/merica.jpg "'Merica Pew Pew"
