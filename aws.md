@@ -511,19 +511,19 @@ In order to setup the _vault-init_ we need to target the server and authenticate
 We use `safe` as our CLI to do both commands.
 
 ```
-$ safe target proto http://127.0.0.1:8200
-Now targeting proto at http://127.0.0.1:8200
+$ safe target init http://127.0.0.1:8200
+Now targeting init at http://127.0.0.1:8200
 
 $ safe targets
 
-  proto  http://127.0.0.1:8200
+  init  http://127.0.0.1:8200
 ```
 
 Authenticate with the `Root Token` from the `vault server` output.
 
 ```
 $ safe auth token
-Authenticating against proto at http://127.0.0.1:8200
+Authenticating against init at http://127.0.0.1:8200
 Token: <paste your Root Token here>
 ```
 
@@ -575,12 +575,18 @@ quickly, including:
 - `vsphere` for VMWare ESXi virtualization clusters
 - `openstack` for OpenStack tenant deployments
 
-Since this guide is AWS, we will use the `--template aws` AWS template and give
-it a name of `infra-aws`.
+When generating a new site we'll use this command format:
 
 ```
-$ genesis new site --template aws infra-aws
-Created site infra-aws (from template aws):
+genesis new site --template <name> <site_name>
+```
+
+The template `<name>` will be `aws` because that's our IaaS we're working with and
+we recommend the `<site_name>` default to the AWS Region, ex. `us-west-2`.
+
+```
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
 ~/ops/bosh-deployments/aws
 ├── README
 └── site
@@ -602,19 +608,19 @@ Created site infra-aws (from template aws):
 ```
 
 Finally, let's create our new environment, and name it `proto`
-(that's `infra-aws/proto`, formally speaking).
+(that's `us-west-2/proto`, formally speaking).
 
 ```
-$ genesis new environment --type bosh-init infra-aws proto
+$ genesis new environment --type bosh-init us-west-2 proto
 Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
- proto  http://127.0.0.1:8200
+ init  http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]
 yes
-Setting up credentials in vault, under secret/infra-aws/proto/bosh
+Setting up credentials in vault, under secret/us-west-2/proto/bosh
 .
-└── secret/infra-aws/proto/bosh
+└── secret/us-west-2/proto/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -626,8 +632,8 @@ Setting up credentials in vault, under secret/infra-aws/proto/bosh
     └── vcap
 
 
-Created environment infra-aws/proto:
-~/ops/bosh-deployments/infra-aws/proto
+Created environment us-west-2/proto:
+~/ops/bosh-deployments/us-west-2/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -646,7 +652,7 @@ Created environment infra-aws/proto:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and stored them in
-our _vault-init_, under the `secret/infra-aws/proto/bosh` subtree.  Later, we'll
+our _vault-init_, under the `secret/us-west-2/proto/bosh` subtree.  Later, we'll
 migrate this subtree over to our real Vault, once it is up and spinning.
 
 #### Make Manifest
@@ -656,7 +662,7 @@ can create a manifest, or (a more likely case) we still have to
 provide some critical information:
 
 ```
-$ cd infra-aws/proto
+$ cd us-west-2/proto
 $ make manifest
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
@@ -796,9 +802,9 @@ Let's leverage our Vault to create the SSH key pair for BOSH.
 `safe` has a handy builtin for doing this:
 
 ```
-$ safe ssh secret/infra-aws/proto/shield/keys/core
-$ safe get secret/infra-aws/proto/shield/keys/core
---- # secret/infra-aws/proto/shield/keys/core
+$ safe ssh secret/us-west-2/proto/shield/keys/core
+$ safe get secret/us-west-2/proto/shield/keys/core
+--- # secret/us-west-2/proto/shield/keys/core
 fingerprint: 40:9b:11:82:67:41:23:a8:c2:87:98:5d:ec:65:1d:30
 private: |
   -----BEGIN RSA PRIVATE KEY-----
@@ -905,8 +911,8 @@ No existing genesis-created bosh-init statefile detected. Please
 help genesis find it.
 Path to existing bosh-init statefile (leave blank for new
 deployments):
-Deployment manifest: '~/ops/bosh-deployments/infra-aws/proto/manifests/.deploy.yml'
-Deployment state: '~/ops/bosh-deployments/infra-aws/proto/manifests/.deploy-state.json'
+Deployment manifest: '~/ops/bosh-deployments/us-west-2/proto/manifests/.deploy.yml'
+Deployment state: '~/ops/bosh-deployments/us-west-2/proto/manifests/.deploy-state.json'
 
 Started validating
   Downloading release 'bosh'... Finished (00:00:09)
@@ -935,8 +941,8 @@ newly-deployed Director.  First you're going to need to get the
 password out of our _vault-init_.
 
 ```
-$ safe get secret/infra-aws/proto/bosh/users/admin
---- # secret/infra-aws/proto/bosh/users/admin
+$ safe get secret/us-west-2/proto/bosh/users/admin
+--- # secret/us-west-2/proto/bosh/users/admin
 password: super-secret
 ```
 
@@ -996,7 +1002,7 @@ monitors each of the child environments that will deployed later by the
 _proto-BOSH_ Director.
 
 As before (and as will become almost second-nature soon), let's
-create our `infra-aws` site using the `aws` template, and then create
+create our `us-west-2` site using the `aws` template, and then create
 the `ops` environment inside of that site.
 
 ```
@@ -1283,27 +1289,27 @@ $ safe target proto -- export secret | \
   safe target ops   -- import
 Now targeting ops at https://10.4.1.16:8200
 Now targeting proto at http://127.0.0.1:8200
-wrote secret/aws/ops/shield/webui
+wrote secret/aws/proto/shield/webui
 wrote secret/aws/test/bosh/db
 wrote secret/aws/test/bosh/nats
-wrote secret/aws/ops/bosh/blobstore/director
-wrote secret/aws/ops/shield/daemon
-wrote secret/aws/ops/shield/db
-wrote secret/aws/ops/shield/keys/core
-wrote secret/aws/ops/shield/sessionsdb
+wrote secret/aws/proto/bosh/blobstore/director
+wrote secret/aws/proto/shield/daemon
+wrote secret/aws/proto/shield/db
+wrote secret/aws/proto/shield/keys/core
+wrote secret/aws/proto/shield/sessionsdb
 wrote secret/aws/test/bosh/blobstore/director
 wrote secret/aws/test/bosh/users/admin
 wrote secret/aws/test/bosh/users/hm
-wrote secret/aws/ops/bosh/blobstore/agent
-wrote secret/aws/ops/bosh/users/admin
-wrote secret/aws/ops/bosh/users/hm
-wrote secret/aws/ops/bosh/db
+wrote secret/aws/proto/bosh/blobstore/agent
+wrote secret/aws/proto/bosh/users/admin
+wrote secret/aws/proto/bosh/users/hm
+wrote secret/aws/proto/bosh/db
 wrote secret/aws/test/bosh/blobstore/agent
 wrote secret/aws/test/bosh/vcap
 wrote secret/handshake
-wrote secret/aws/ops/bosh/nats
-wrote secret/aws/ops/bosh/vcap
-wrote secret/aws/ops/vault/tls
+wrote secret/aws/proto/bosh/nats
+wrote secret/aws/proto/bosh/vcap
+wrote secret/aws/proto/vault/tls
 
 $ safe target ops -- tree
 Now targeting ops at https://10.4.1.16:8200
