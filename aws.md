@@ -26,7 +26,7 @@ backups with software created by Stark & Wayne's engineers.
 And visibility into the progress and health of each application, release, or
 package is available through the power of Concourse pipelines.
 
-![Levels of Bosh][bosh_levels]
+![Levels of Bosh][levels_of_bosh]
 
 In the above diagram, BOSH (1) is the proto-BOSH, while BOSH (2) and BOSH (3)
 are the per-site BOSH directors.
@@ -254,18 +254,15 @@ begin the teardown.  The second will shutdown the background process.
 
 ## Bastion Host
 
-For our purposes, the bastion host is the initial `jumpbox` server from which we'll
-begin to create our `global` network.  From this entry-point we'll be creating a
-BOSH Director, installing software such as Vault, Shield, Bolo and Concourse.
+The bastion host is the server the BOSH operator connects to, in order to perform
+commands that affect the _proto-BOSH_ Director and the software that gets deployed
+by it.
 
-![Global Network Diagram][global_network_diagram]
+We'll be covering the configuration and deployment of each of these software
+step-by-step as we go along. By the time you're done working on the bastion
+server, you'll have installed each of the following in the numbered order:
 
-This software allows the advanced deployment and management of each environment
-created after the first `proto` environment.
-
-We'll be covering each of these steps in greater detail as we go along, by the time
-you're done working on the bastion server, you'll have installed each of the
-following in the numbered order:
+![Bastion Host Overview][bastion_host_overview]
 
 ### Public IP Address
 
@@ -412,32 +409,31 @@ git user.name  is 'Joe User'
 git user.email is 'juser@starkandwayne.com'
 ```
 
-## Infrastructure / Proto - Site / Environment
+## Proto Environment
 
-A quick word about **Infrastructure / Proto - Site / Environment**.
+![Global Network Diagram][global_network_diagram]
 
-In Genesis there are three layers where the templates are divided.
+There are three layers to `genesis` templates.
 
 * Global
 * Site
 * Environment
 
-When it comes to Genesis, we're doing to deploy to the `infra-aws` site in the
-`proto` environment.
+### Site Name
 
-Your client may have more than one infrastructure they will deploy to, name the
-site according to their needs.
+Sometimes the site level name can be a bit tricky because each IaaS divides things
+differently.  With AWS we suggest a default of the AWS Region you're using, for
+example: `us-west-2`.
 
-By this point, you've Setup Credentials, Used Terraform to construct the IaaS
-components and Configured a Bastion Host.  We're ready now to setup a BOSH
-Director on the bastion.  
+### Environment Name
 
-We are going to deploy it with `bosh-init`.  Once this BOSH Director is installed,
-it will enable us to deploy however many environment-specific BOSH directors
-via the newly created _proto-BOSH_ server with the `bosh_cli`.  
+All of the software the _proto-BOSH_ will deploy will be in the `proto` environment.
+And by this point, you've [Setup Credentials][setup_credentials],
+[Used Terraform][use_terraform] to construct the IaaS components and
+[Configured a Bastion Host][bastion_host].  We're ready now to setup a BOSH
+Director on the bastion.
 
-This model gives BOSH operators all the benefits of BOSH, applied to the
-director: Monitoring, Caching, Recovery, Lifecycle, etc.
+The first step is to create a _vault_init_ process.
 
 ### vault-init
 
@@ -1006,8 +1002,8 @@ create our `us-west-2` site using the `aws` template, and then create
 the `ops` environment inside of that site.
 
 ```
-$ genesis new site --template infra-aws aws
-$ genesis new environment infra-aws ops
+$ genesis new site --template aws us-west-2
+$ genesis new environment aws proto
 ```
 
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.
@@ -1165,7 +1161,7 @@ unseal the Vault so that you can interact with it.
 First off, we need to find the IP addresses of our Vault nodes:
 
 ```
-$ bosh vms infra-aws-vault-init
+$ bosh vms us-west-2-vault-init
 +---------------------------------------------------+---------+-----+----------+-----------+
 | VM                                                | State   | AZ  | VM Type  | IPs       |
 +---------------------------------------------------+---------+-----+----------+-----------+
@@ -3227,6 +3223,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [aws]:               https://signin.aws.amazon.com/console
 [aws-subnets]:       http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
 [az]:                http://aws.amazon.com/about-aws/global-infrastructure/
+[bastion_host]:      aws.md#bastion-host
 [bolo]:              https://github.com/cloudfoundry-community/bolo-boshrelease
 [cfconsul]:          https://docs.cloudfoundry.org/concepts/architecture/#bbs-consul
 [cfetcd]:            https://docs.cloudfoundry.org/concepts/architecture/#etcd
@@ -3236,14 +3233,17 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [netplan]:           https://github.com/starkandwayne/codex/blob/master/network.md
 [ngrok-download]:    https://ngrok.com/download
 [infra-ips]:         https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
+[setup_credentials]: aws.md#setup-credentials
 [spruce-129]:        https://github.com/geofffranks/spruce/issues/129
 [slither]:           http://slither.io
 [troubleshooting]:   troubleshooting.md
+[use_terraform]:     aws.md#use-terraform
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 
 [//]: # (Images, put in /images folder)
 
-[bosh_levels]:            images/levels_of_bosh.png "Levels of Bosh"
+[levels_of_bosh]:         images/levels_of_bosh.png "Levels of Bosh"
+[bastion_host_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
 [bastion_1]:              images/bastion_step_1.png "vault-init"
 [bastion_2]:              images/bastion_step_2.png "proto-BOSH"
 [bastion_3]:              images/bastion_step_3.png "Vault"
