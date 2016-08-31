@@ -28,9 +28,9 @@ Accessible from the internet, this server allows operators to gain access to ser
 
 A BOSH Director that sits before other site level BOSH Directors (staging/production) in order to help enable more rapid updates to the child-level Directors.
 
-## dev-Vault
+## proto-Vault
 
-A temporary vault server used during the bootstrapping of the proto-BOSH Director to store secrets until the `infra` Vault server is deployed.
+A temporary vault server used during the bootstrapping of the `proto-BOSH` Director to store secrets until the `ops` Vault server is deployed.
 
 ## [safe](https://github.com/starkandwayne/safe)
 
