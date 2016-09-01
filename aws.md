@@ -26,7 +26,7 @@ backups with software created by Stark & Wayne's engineers.
 And visibility into the progress and health of each application, release, or
 package is available through the power of Concourse pipelines.
 
-![Levels of Bosh][bosh_levels]
+![Levels of Bosh][levels_of_bosh]
 
 In the above diagram, BOSH (1) is the proto-BOSH, while BOSH (2) and BOSH (3)
 are the per-site BOSH directors.
@@ -184,7 +184,7 @@ network        = "10.42"
 ```
 
 You may change some default settings according to the real cases you are
-working on. For example, you can change `instance_type (default is t2.small) `
+working on. For example, you can change `instance_type` (default is t2.small)
 in `aws.tf` to large size if the bastion would require a high workload.
 
 ### Production Considerations
@@ -254,25 +254,22 @@ begin the teardown.  The second will shutdown the background process.
 
 ## Bastion Host
 
-For our purposes, the bastion host is the initial jumpbox server from which we'll
-begin to create our `infra` network.  From this entry-point we'll be creating a
-BOSH Director, installing software such as vault, shield, bolo and concourse.
+The bastion host is the server the BOSH operator connects to, in order to perform
+commands that affect the _proto-BOSH_ Director and the software that gets deployed
+by it.
 
-This software allows the advanced deployment and management of each environment
-created after the first `infra` environment.
+We'll be covering the configuration and deployment of each of these software
+step-by-step as we go along. By the time you're done working on the bastion
+server, you'll have installed each of the following in the numbered order:
 
-We'll be covering each of these steps in greater detail as we go along, by the time
-you're done working on the bastion server, you'll have installed each of the
-following in the numbered order:
-
-![Bastion Host Overview][bastion_overview]
+![Bastion Host Overview][bastion_host_overview]
 
 ### Public IP Address
 
 Before we can begin to install software, we need to connect to the server.  There
 are a couple of ways to get the IP address.
 
-* At the end of the Terraform `make deploy` output the `bastion` address is displayed.
+* At the end of the Terraform `make deploy` output the bastion address is displayed.
 
 ```
 box.bastion.public    = 52.43.51.197
@@ -292,7 +289,7 @@ to connect.
 In forming the SSH connection command, use the `-i` flag to give SSH the path to
 the `IdentityFile`.  The default user on the bastion server is `ubuntu`.  This
 will change in a little bit though when we create a new user, so don't get too
-compfy.
+comfy.
 
 ```
 $ ssh -i ~/.ssh/cf-deploy.pem ubuntu@52.43.51.197
@@ -309,7 +306,7 @@ some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which
 will be important when we start using the bastion host to do deployments.
 
 **NOTE**: Try not to confuse the `jumpbox` script with the jumpbox _BOSH release_.
-The _BOSH release_ can be used as part of the deployment.  And the script gets
+The _BOSH release_ can be used as part of a deployment.  And the script gets
 run directly on the bastion host.
 
 Once connected to the bastion, check if the `jumpbox` utility is installed.
@@ -370,7 +367,7 @@ $ logout
 ### SSH Config
 
 On your local computer, setup an entry in the `~/.ssh/config` file for your
-bastion host.  Substituting the correct IP and path to `*.pem` file.
+bastion host.  Substituting the correct IP.
 
 ```
 Host bastion
@@ -412,20 +409,57 @@ git user.name  is 'Joe User'
 git user.email is 'juser@starkandwayne.com'
 ```
 
-## A Land Before Time
+## Proto Environment
 
-So you've tamed the IaaS and outfitted your bastion host with the necessary tools to deploy stuff.  First up, we have to deploy a BOSH director, which we will call proto-BOSH.
+![Global Network Diagram][global_network_diagram]
 
-Proto-BOSH is a little different from all of the other BOSH directors we're going to deploy.  For starters, it gets deployed via `bosh-init`, whereas our environment-specific BOSH directors are going to be deployed via the proto-BOSH (and the `bosh` CLI).  It is also the only deployment that gets deployed without the benefit of a pre-existing Vault in which to store secret credentials (but, as you'll see, we're going to cheat a bit on that front).
+There are three layers to `genesis` templates.
 
-### Proto-Vault
+* Global
+* Site
+* Environment
 
-BOSH has secrets.  Lots of them.  Components like NATS and the database rely on secure passwords for inter-component interaction.  Ideally, we'd have a spinning Vault for storing our credentials, so that we don't have them on-disk or in a git
-repository somewhere.
+### Site Name
 
-However, we are starting from almost nothing, so we don't have the luxury of using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded Vault server instance _on the bastion host_, and then migrate the credentials to the real Vault later.
+Sometimes the site level name can be a bit tricky because each IaaS divides things
+differently.  With AWS we suggest a default of the AWS Region you're using, for
+example: `us-west-2`.
 
-The `jumpbox` script that we ran as part of setting up the bastion host installs the `vault` command-line utility, which includes not only the client for interacting with Vault, but also the Vault server daemon itself.
+### Environment Name
+
+All of the software the _proto-BOSH_ will deploy will be in the `proto` environment.
+And by this point, you've [Setup Credentials][setup_credentials],
+[Used Terraform][use_terraform] to construct the IaaS components and
+[Configured a Bastion Host][bastion_host].  We're ready now to setup a BOSH
+Director on the bastion.
+
+The first step is to create a _vault_init_ process.
+
+### vault-init
+
+![vault-init][bastion_1]
+
+BOSH has secrets.  Lots of them.  Components like NATS and the database rely on
+secure passwords for inter-component interaction.  Ideally, we'd have a spinning
+Vault for storing our credentials, so that we don't have them on-disk or in a
+git repository somewhere.
+
+However, we are starting from almost nothing, so we don't have the luxury of
+using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded
+Vault server instance **on the bastion host**, and then migrate the credentials to
+the real Vault later.
+
+This we call a _vault-init_.  Because it precedes the _proto-BOSH_ and Vault
+deploy we'll be setting up later.
+
+The `jumpbox` script that we ran as part of setting up the bastion host installs
+the `vault` command-line utility, which includes not only the client for
+interacting with Vault (`safe`), but also the Vault server daemon itself.
+
+#### Start Server
+
+Were going to start the server and do an overview of what the output means.  To
+start the _vault-init_, run the `vault server` with the `-dev` flag.
 
 ```
 $ vault server -dev
@@ -435,112 +469,121 @@ In this mode, Vault is completely in-memory and unsealed.
 Vault is configured to only have a single unseal key. The root
 token has already been authenticated with the CLI, so you can
 immediately begin using the Vault CLI.
+```
 
+A vault being unsealed sounds like a bad thing right?  But if you think about it
+like at a bank, you can't get to what's in a vault unless it's unsealed.
+
+Next we see the address and port.  We'll use that in a bit to set CLI target with
+`safe`.
+
+
+```
 The only step you need to take is to set the following
 environment variables:
 
     export VAULT_ADDR='http://127.0.0.1:8200'
+```
 
+And in dev mode, `vault server` gives the user the tools needed to authenticate.
+We'll be using these soon when we log in.
+
+```
 The unseal key and root token are reproduced below in case you
 want to seal/unseal the Vault or play with authentication.
 
 Unseal Key:
 781d77046dcbcf77d1423623550d28f152d9b419e09df0c66b553e1239843d89
 Root Token: c888c5cd-bedd-d0e6-ae68-5bd2debee3b7
-
-==> Vault server configuration:
-
-         Log Level: info
-             Mlock: supported: true, enabled: false
-           Backend: inmem
-        Listener 1: tcp (addr: "127.0.0.1:8200", tls: "disabled")
-           Version: Vault v0.5.0
-
-==> Vault server started! Log data will stream in below:
-
-2016/06/28 13:24:54 [INFO] core: security barrier initialized (shares: 1, threshold 1)
-2016/06/28 13:24:54 [INFO] core: post-unseal setup starting
-2016/06/28 13:24:54 [INFO] core: mounted backend of type generic at secret/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type cubbyhole at cubbyhole/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type system at sys/
-2016/06/28 13:24:54 [INFO] core: post-unseal setup complete
-2016/06/28 13:24:54 [INFO] core: root token generated
-2016/06/28 13:24:54 [INFO] core: pre-seal teardown starting
-2016/06/28 13:24:54 [INFO] rollback: starting rollback manager
-2016/06/28 13:24:54 [INFO] rollback: stopping rollback manager
-2016/06/28 13:24:54 [INFO] core: pre-seal teardown complete
-2016/06/28 13:24:54 [INFO] core: vault is unsealed
-2016/06/28 13:24:54 [INFO] core: post-unseal setup starting
-2016/06/28 13:24:54 [INFO] core: mounted backend of type generic at secret/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type cubbyhole at cubbyhole/
-2016/06/28 13:24:54 [INFO] core: mounted backend of type system at sys/
-2016/06/28 13:24:54 [INFO] core: post-unseal setup complete
-2016/06/28 13:24:54 [INFO] rollback: starting rollback manager
-...
 ```
 
-**NOTE**: You probably want to run this in a `tmux` session, in the foreground.
-Running it in the background sounds like a fine idea, except that Vault is pretty
-chatty, and we can't redirect the output to `/dev/null` because we need to see
-that root token.
+**NOTE**: When you run the `vault server -dev` command, we recommend running it
+in the foreground using either a `tmux` session or a separate ssh tab.  Also, we
+do need to capture the output of the `Root Token`.
 
-With our proto-Vault up and spinning, we can target it:
+#### Setup vault-init
+
+In order to setup the _vault-init_ we need to target the server and authenticate.
+We use `safe` as our CLI to do both commands.
 
 ```
-$ safe target proto http://127.0.0.1:8200
-Now targeting proto at http://127.0.0.1:8200
+$ safe target init http://127.0.0.1:8200
+Now targeting init at http://127.0.0.1:8200
 
 $ safe targets
 
- proto  http://127.0.0.1:8200
+  init  http://127.0.0.1:8200
+```
 
+Authenticate with the `Root Token` from the `vault server` output.
+
+```
 $ safe auth token
-Authenticating against proto at http://127.0.0.1:8200
+Authenticating against init at http://127.0.0.1:8200
 Token: <paste your Root Token here>
+```
 
+#### Test vault-init
+
+Here's a smoke test to see if you've setup the _vault-init_ correctly.
+
+```
 $ safe set secret/handshake knock=knock
 knock: knock
 
 $ safe read secret/handshake
 --- # secret/handshake
 knock: knock
-
 ```
 
-All set!  Now we can deploy our proto-BOSH.
+All set!  Now we can now build our deploy for the _proto-BOSH_.
 
 ### Proto-BOSH
 
-First, you're going to need a place on the bastion host to store
-your deployments:
+![proto-BOSH][bastion_2]
+
+#### Generate BOSH Deploy
+
+When using [the Genesis framework][genesis] to manage our deploys across
+environments, a folder to manage each of the software we'll deploy needs to
+be created.
+
+First setup a `ops` folder in your user's home directory.
 
 ```
 $ mkdir -p ~/ops
 $ cd ~/ops
 ```
 
-Genesis has a template for BOSH deployments (including support for
-the proto-BOSH), so let's use that.
+Genesis has a template for BOSH deployments (including support for the
+_proto-BOSH_), so let's use that by passing `bosh` into the `--template` flag.
 
 ```
 $ genesis new deployment --template bosh
 $ cd bosh-deployments
 ```
 
-Next, we'll create a site and an environment from which to deploy
-our proto-BOSH.  The BOSH template comes with some site templates
-to help you get started quickly, including:
+Next, we'll create a site and an environment from which to deploy our _proto-BOSH_.
+The BOSH template comes with some site templates to help you get started
+quickly, including:
 
 - `aws` for Amazon Web Services VPC deployments
 - `vsphere` for VMWare ESXi virtualization clusters
 - `openstack` for OpenStack tenant deployments
 
-We're going to use `aws`:
+When generating a new site we'll use this command format:
 
 ```
-$ genesis new site --template aws aws
-Created site aws (from template aws):
-~/ops/docs/bosh-deployments/aws
+genesis new site --template <name> <site_name>
+```
+
+The template `<name>` will be `aws` because that's our IaaS we're working with and
+we recommend the `<site_name>` default to the AWS Region, ex. `us-west-2`.
+
+```
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
+~/ops/bosh-deployments/aws
 ├── README
 └── site
     ├── README
@@ -561,19 +604,19 @@ Created site aws (from template aws):
 ```
 
 Finally, let's create our new environment, and name it `proto`
-(that's `aws/proto`, formally speaking).
+(that's `us-west-2/proto`, formally speaking).
 
 ```
-$ genesis new environment --type bosh-init aws proto
+$ genesis new environment --type bosh-init us-west-2 proto
 Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
- proto  http://127.0.0.1:8200
+ init  http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]
 yes
-Setting up credentials in vault, under secret/aws/proto/bosh
+Setting up credentials in vault, under secret/us-west-2/proto/bosh
 .
-└── secret/aws/proto/bosh
+└── secret/us-west-2/proto/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -585,8 +628,8 @@ Setting up credentials in vault, under secret/aws/proto/bosh
     └── vcap
 
 
-Created environment aws/proto:
-~/ops/bosh-deployments/aws/proto
+Created environment us-west-2/proto:
+~/ops/bosh-deployments/us-west-2/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -604,17 +647,18 @@ Created environment aws/proto:
 **NOTE** Don't forget that `--type bosh-init` flag is very important. Otherwise,
 you'll run into problems with your deployment.
 
-The template helpfully generated all new credentials for us and
-stored them in our proto-Vault, under the `secret/aws/proto/bosh`
-subtree.  Later, we'll migrate this subtree over to our real
-Vault, once it is up and spinning.
+The template helpfully generated all new credentials for us and stored them in
+our _vault-init_, under the `secret/us-west-2/proto/bosh` subtree.  Later, we'll
+migrate this subtree over to our real Vault, once it is up and spinning.
+
+#### Make Manifest
 
 Let's head into the `proto/` environment directory and see if we
 can create a manifest, or (a more likely case) we still have to
 provide some critical information:
 
 ```
-$ cd aws/proto
+$ cd us-west-2/proto
 $ make manifest
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
@@ -703,7 +747,8 @@ make: *** [manifest] Error 5
 ```
 
 Better. Let's configure our `cloud_provider` for AWS, using our EC2
-keypair. We need copy our EC2 private key to bastion host and path to the key for `private_key` entry in the following `properties.yml`.
+key pair. We need copy our EC2 private key to bastion host and path to the key
+for `private_key` entry in the following `properties.yml`.
 
 ```
 $ cat properties.yml
@@ -739,23 +784,23 @@ Excellent.  We're down to two issues.
 
 We haven't deployed a SHIELD yet, so it may seem a bit odd that
 we're being asked for an SSH public key.  When we deploy our
-proto-BOSH via `bosh-init`, we're going to spend a fair chunk of
+_proto-BOSH_ via `bosh-init`, we're going to spend a fair chunk of
 time compiling packages on the bastion host before we can actually
 create and update the director VM.  `bosh-init` will delete the
 director VM before it starts this compilation phase, so we will be
 unable to do _anything_ while `bosh-init` is hard at work.  The
 whole process takes about 30 minutes, so we want to minimize the
-number of times we have to re-deploy proto-BOSH.  By specifying
+number of times we have to re-deploy _proto-BOSH_.  By specifying
 the SHIELD agent configuration up-front, we skip a re-deploy after
 SHIELD itself is up.
 
-Let's leverage our Vault to create the SSH keypair for BOSH.
+Let's leverage our Vault to create the SSH key pair for BOSH.
 `safe` has a handy builtin for doing this:
 
 ```
-$ safe ssh secret/aws/proto/shield/keys/core
-$ safe get secret/aws/proto/shield/keys/core
---- # secret/aws/proto/shield/keys/core
+$ safe ssh secret/us-west-2/proto/shield/keys/core
+$ safe get secret/us-west-2/proto/shield/keys/core
+--- # secret/us-west-2/proto/shield/keys/core
 fingerprint: 40:9b:11:82:67:41:23:a8:c2:87:98:5d:ec:65:1d:30
 private: |
   -----BEGIN RSA PRIVATE KEY-----
@@ -854,7 +899,7 @@ total 8
 -rw-r--r-- 1 ops staff 4572 Jun 28 14:24 manifest.yml
 ```
 
-Now we are ready to deploy proto-BOSH.
+Now we are ready to deploy _proto-BOSH_.
 
 ```
 $ make deploy
@@ -862,8 +907,8 @@ No existing genesis-created bosh-init statefile detected. Please
 help genesis find it.
 Path to existing bosh-init statefile (leave blank for new
 deployments):
-Deployment manifest: '~/ops/bosh-deployments/aws/proto/manifests/.deploy.yml'
-Deployment state: '~/ops/bosh-deployments/aws/proto/manifests/.deploy-state.json'
+Deployment manifest: '~/ops/bosh-deployments/us-west-2/proto/manifests/.deploy.yml'
+Deployment state: '~/ops/bosh-deployments/us-west-2/proto/manifests/.deploy-state.json'
 
 Started validating
   Downloading release 'bosh'... Finished (00:00:09)
@@ -889,11 +934,11 @@ or grab a cup of tea.)
 
 All done?  Verify the deployment by trying to `bosh target` the
 newly-deployed Director.  First you're going to need to get the
-password out of our proto-Vault.
+password out of our _vault-init_.
 
 ```
-$ safe get secret/aws/proto/bosh/users/admin
---- # secret/mgmt/proto/bosh/users/admin
+$ safe get secret/us-west-2/proto/bosh/users/admin
+--- # secret/us-west-2/proto/bosh/users/admin
 password: super-secret
 ```
 
@@ -929,10 +974,14 @@ All set!
 
 Before you move onto the next step, you should commit your local
 deployment files to version control, and push them up _somewhere_.
-It's ok, thanks to Vault, there are no credentials or anything
-sensitive in the Genesis template files.
+It's ok, thanks to Vault, Spruce and Genesis, there are no credentials or
+anything sensitive in the template files.
 
-### Vault
+### Generate Vault Deploy
+
+We're building the infrastructure environment's vault.
+
+![Vault][bastion_3]
 
 Now that we have a proto-BOSH director, we can use it to deploy
 our real Vault.  We'll start with the Genesis template for Vault:
@@ -943,13 +992,18 @@ $ genesis new deployment --template vault
 $ cd vault-deployments
 ```
 
+**NOTE**: What is the "ops" environment? Short for operations, it's the
+environment we're deploying the _proto-BOSH_ and all the extra software that
+monitors each of the child environments that will deployed later by the
+_proto-BOSH_ Director.
+
 As before (and as will become almost second-nature soon), let's
-create our `aws` site using the `aws` template, and then create
-the `proto` environment inside of that site.
+create our `us-west-2` site using the `aws` template, and then create
+the `ops` environment inside of that site.
 
 ```
-$ genesis new site --template aws aws
-$ genesis new environment aws proto
+$ genesis new site --template aws us-west-2
+$ genesis new environment us-west-2 proto
 ```
 
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.
@@ -1086,7 +1140,7 @@ And then let's give the deploy a whirl:
 
 ```
 $ make deploy
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release consul/20 already exists...NO
 Using remote release `https://bosh.io/d/github.com/cloudfoundry-community/consul-boshrelease?v=20'
 
@@ -1107,7 +1161,7 @@ unseal the Vault so that you can interact with it.
 First off, we need to find the IP addresses of our Vault nodes:
 
 ```
-$ bosh vms aws-proto-vault
+$ bosh vms us-west-2-vault-init
 +---------------------------------------------------+---------+-----+----------+-----------+
 | VM                                                | State   | AZ  | VM Type  | IPs       |
 +---------------------------------------------------+---------+-----+----------+-----------+
@@ -1126,7 +1180,7 @@ $ export VAULT_ADDR=https://10.4.1.16:8200
 $ export VAULT_SKIP_VERIFY=1
 ```
 
-We have to set `$VAULT_SKIP_VERIFY` to a non-empty value becase we
+We have to set `$VAULT_SKIP_VERIFY` to a non-empty value because we
 used self-signed certificates when we deployed our Vault. The error message is as following if we did not do `export VAULT_SKIP_VERIFY=1`.
 
 ```
@@ -1156,10 +1210,10 @@ Vault does not store the master key. Without at least 3 keys,
 your Vault will remain permanently sealed.
 ```
 
-**Store these seal keys and the root token somewhere safe!!**
-(A password manager like 1password is an excellent option here.)
+**Store these seal keys and the root token somewhere secure!!**
+(A password manager like 1Password is an excellent option here.)
 
-Unlike the dev-mode proto-Vault we spun up at the very outset,
+Unlike the dev-mode _vault-init_ we spun up at the very outset,
 this Vault comes up sealed, and needs to be unsealed using three
 of the five keys above, so let's do that.
 
@@ -1186,10 +1240,10 @@ Now, let's switch back to using `safe`:
 
 ```
 $ safe target https://10.4.1.16:8200 ops
-Now targeting ops at https://10.4.1.16:8200
+Now targeting proto at https://10.4.1.16:8200
 
 $ safe auth token
-Authenticating against ops at https://10.4.1.16:8200
+Authenticating against proto at https://10.4.1.16:8200
 Token:
 
 $ safe set secret/handshake knock=knock
@@ -1198,14 +1252,14 @@ knock: knock
 
 ### Migrating Credentials
 
-You should now have two `safe` targets, one for the proto-Vault
+You should now have two `safe` targets, one for the dev-Vault
 (named 'proto') and another for the real Vault (named 'ops'):
 
 ```
 $ safe targets
 
-(*) ops     https://10.4.1.16:8200
-    proto   http://127.0.0.1:8200
+(*) proto     https://10.4.1.16:8200
+    init      http://127.0.0.1:8200
 
 ```
 
@@ -1213,8 +1267,8 @@ Our `ops` Vault should be empty; we can verify that with `safe
 tree`:
 
 ```
-$ safe target ops -- tree
-Now targeting ops at https://10.4.1.16:8200
+$ safe target proto -- tree
+Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
     └── handshake
@@ -1223,38 +1277,38 @@ Now targeting ops at https://10.4.1.16:8200
 
 `safe` supports a handy import/export feature that can be used to
 move credentials securely between Vaults, without touching disk,
-which is exactly what we need to migrate from our proto-Vault to
+which is exactly what we need to migrate from our dev-Vault to
 our real one:
 
 ```
-$ safe target proto -- export secret | \
-  safe target ops   -- import
-Now targeting ops at https://10.4.1.16:8200
-Now targeting proto at http://127.0.0.1:8200
-wrote secret/aws/proto/shield/webui
-wrote secret/aws/test/bosh/db
-wrote secret/aws/test/bosh/nats
-wrote secret/aws/proto/bosh/blobstore/director
-wrote secret/aws/proto/shield/daemon
-wrote secret/aws/proto/shield/db
-wrote secret/aws/proto/shield/keys/core
-wrote secret/aws/proto/shield/sessionsdb
-wrote secret/aws/test/bosh/blobstore/director
-wrote secret/aws/test/bosh/users/admin
-wrote secret/aws/test/bosh/users/hm
-wrote secret/aws/proto/bosh/blobstore/agent
-wrote secret/aws/proto/bosh/users/admin
-wrote secret/aws/proto/bosh/users/hm
-wrote secret/aws/proto/bosh/db
-wrote secret/aws/test/bosh/blobstore/agent
-wrote secret/aws/test/bosh/vcap
+$ safe target init -- export secret | \
+  safe target proto   -- import
+Now targeting proto at https://10.4.1.16:8200
+Now targeting init at http://127.0.0.1:8200
+wrote secret/us-west-2/proto/shield/webui
+wrote secret/us-west-2/test/bosh/db
+wrote secret/us-west-2/test/bosh/nats
+wrote secret/us-west-2/proto/bosh/blobstore/director
+wrote secret/us-west-2/proto/shield/daemon
+wrote secret/us-west-2/proto/shield/db
+wrote secret/us-west-2/proto/shield/keys/core
+wrote secret/us-west-2/proto/shield/sessionsdb
+wrote secret/us-west-2/test/bosh/blobstore/director
+wrote secret/us-west-2/test/bosh/users/admin
+wrote secret/us-west-2/test/bosh/users/hm
+wrote secret/us-west-2/proto/bosh/blobstore/agent
+wrote secret/us-west-2/proto/bosh/users/admin
+wrote secret/us-west-2/proto/bosh/users/hm
+wrote secret/us-west-2/proto/bosh/db
+wrote secret/us-west-2/test/bosh/blobstore/agent
+wrote secret/us-west-2/test/bosh/vcap
 wrote secret/handshake
-wrote secret/aws/proto/bosh/nats
-wrote secret/aws/proto/bosh/vcap
-wrote secret/aws/proto/vault/tls
+wrote secret/us-west-2/proto/bosh/nats
+wrote secret/us-west-2/proto/bosh/vcap
+wrote secret/us-west-2/proto/vault/tls
 
-$ safe target ops -- tree
-Now targeting ops at https://10.4.1.16:8200
+$ safe target proto -- tree
+Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
     ├── aws/
@@ -1293,13 +1347,15 @@ Now targeting ops at https://10.4.1.16:8200
 ```
 
 Voila!  We now have all of our credentials in our real Vault, and
-we can kill the proto-Vault server process!
+we can kill the dev-Vault server process!
 
 ```
 $ sudo pkill vault
 ```
 
-## SHIELD Backups and Restores
+## Shield
+
+![Shield][bastion_4]
 
 SHIELD is our backup solution.  We use it to configure and
 schedule regular backups of data systems that are important to our
@@ -1491,7 +1547,9 @@ deployment, and start configuring your backup jobs.
 
 TODO: Add how to use SHIELD to backup and restore by using an example.
 
-## Bolo Monitoring
+## bolo
+
+![bolo][bastion_5]
 
 Bolo is a monitoring system that collects metrics and state data
 from your BOSH deployments, aggregates it, and provides data
@@ -1726,6 +1784,8 @@ collectors, and deployment properties.
 
 ## Concourse
 
+![Concourse][bastion_6]
+
 ### Deploying Concourse
 
 If we're not already targeting the ops vault, do so now to save frustration later.
@@ -1736,7 +1796,7 @@ Now targeting ops at https://10.4.1.16:8200
 ```
 
 
-From the `~/ops` folder let's generate a new `concourse` deployment, using the `--template` flag.
+From the `~/deployments` folder let's generate a new `concourse` deployment, using the `--template` flag.
 
 ```
 $ genesis new deployment --template concourse
@@ -1768,7 +1828,8 @@ Created site aws (from template aws):
 Finally now, because our vault is setup and targeted correctly we can generate our `environment` level configurations.  And begin the process of setting up the specific parameters for our environment.
 
 ```
-~/ops/concourse-deployments$ genesis new environment aws proto
+$ cd ~/ops/concourse-deployments
+$ genesis new environment aws proto
 Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/00_confirm_vault
 
 (*) ops   https://10.4.1.16:8200
@@ -1813,13 +1874,12 @@ Lets make the manifest
 Failed to merge templates; bailing...
 Makefile:22: recipe for target 'manifest' failed
 make: *** [manifest] Error 5
-~/ops/concourse-deployments/aws/proto$
 ```
 
-Again starting with Meta lines:
+Again starting with Meta lines in `~/ops/concourse-deployments/aws/proto`:
 
 ```
-~/ops/concourse-deployments/aws/proto$ cat properties.yml
+$ cat properties.yml
 ---
 meta:
   availability_zone: "us-west-2a"   # Set this to match your first zone "aws_az1"
@@ -1900,11 +1960,10 @@ and x.x.x.x with the IP address of the bastion host.
 
 To do: Need an example to show how to setup pipeline for deployments using Concourse.
 
-
 ## Building out Sites and Environments
 
-Now that the underlying infrastructure has been deployed, we can start deplying our alpha/beta/other sites, with Cloud Foundry, and any required services. When using Concourse to update BOSH deployments,
-there are the concepts of `alpha` and `beta` sites. The alpha site is the initial place where all deployment changes are checked for sanity + deployability. Typically this is done with a `bosh-lite` VM. The `beta` sites are where site-level changes are vetted. Usually these are referred to as the sandbox or staging environments, and there will be one per site, by necessity. Once changes have passed both the alpha, and beta site, we know it is safe for them to be rolled out to other sites, like production.
+Now that the underlying infrastructure has been deployed, we can start deploying our alpha/beta/other sites, with Cloud Foundry, and any required services. When using Concourse to update BOSH deployments,
+there are the concepts of `alpha` and `beta` sites. The alpha site is the initial place where all deployment changes are checked for sanity + deployability. Typically this is done with a `bosh-lite` VM. The `beta` sites are where site-level changes are vetted. Usually these are referred to as the sandbox or staging environments, and there will be one per site, by necessity. Once changes have passed both the alpha, and beta site, we know it is reasonable for them to be rolled out to other sites, like production.
 
 ### Alpha
 
@@ -1915,7 +1974,7 @@ Since our `alpha` site will be a bosh lite running on AWS, we will need to deplo
 First, lets make sure we're in the right place, targetting the right Vault:
 
 ```
-$ cd ~/ops
+$ cd ~/deployments
 $ safe target ops
 Now targeting ops at https://10.4.1.16:8200
 ```
@@ -2175,7 +2234,7 @@ To deploy CF to our alpha environment, we will need to first ensure we're target
 Vault/BOSH:
 
 ```
-$ cd ~/ops
+$ cd ~/deployments
 $ safe target ops
 
 (*) ops	https://10.4.1.16:8200
@@ -3163,20 +3222,31 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [aws]:               https://signin.aws.amazon.com/console
 [aws-subnets]:       http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
 [az]:                http://aws.amazon.com/about-aws/global-infrastructure/
+[bastion_host]:      aws.md#bastion-host
 [bolo]:              https://github.com/cloudfoundry-community/bolo-boshrelease
 [cfconsul]:          https://docs.cloudfoundry.org/concepts/architecture/#bbs-consul
 [cfetcd]:            https://docs.cloudfoundry.org/concepts/architecture/#etcd
 [DRY]:               https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+[genesis]:           https://github.com/starkandwayne/genesis
 [jumpbox]:           https://github.com/starkandwayne/jumpbox
 [netplan]:           https://github.com/starkandwayne/codex/blob/master/network.md
 [ngrok-download]:    https://ngrok.com/download
 [infra-ips]:         https://github.com/starkandwayne/codex/blob/master/part3/network.md#global-infrastructure-ip-allocation
+[setup_credentials]: aws.md#setup-credentials
 [spruce-129]:        https://github.com/geofffranks/spruce/issues/129
 [slither]:           http://slither.io
 [troubleshooting]:   troubleshooting.md
+[use_terraform]:     aws.md#use-terraform
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 
 [//]: # (Images, put in /images folder)
 
-[bosh_levels]:       images/levels_of_bosh.png "Levels of Bosh"
-[bastion_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
+[levels_of_bosh]:         images/levels_of_bosh.png "Levels of Bosh"
+[bastion_host_overview]:  images/bastion_host_overview.png "Bastion Host Overview"
+[bastion_1]:              images/bastion_step_1.png "vault-init"
+[bastion_2]:              images/bastion_step_2.png "proto-BOSH"
+[bastion_3]:              images/bastion_step_3.png "Vault"
+[bastion_4]:              images/bastion_step_4.png "Shield"
+[bastion_5]:              images/bastion_step_5.png "Bolo"
+[bastion_6]:              images/bastion_step_6.png "Concourse"
+[global_network_diagram]: images/global_network_diagram.png "Global Network Diagram"

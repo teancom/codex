@@ -1,42 +1,25 @@
-## Common Errors and Solutions to them!
+## Troubleshooting Guide
 
 Here we will display all common errors, the common paths that you ended up in
 that position, and the ways to get around them. If you can't find the solution
 in the main docs, then the answer will probably be here....ONWARDS!
 
-### Bastion / Jumpbox
+## Bastion Host
 
-When trying to `make all` to deploy the bastion host. Terraform will connect to
-AWS, using your **Access Key ID** and **Secret Key ID**, then spin up all the
-things it needs.  When it finishes, you should be left with a bunch of subnets,
-configured network ACLs, security groups, routing tables, a NAT instance (for
-public internet connectivity) and a bastion host.
+### Missing Commands
 
-If the `deploy` or `all` step fails with errors like:
+If you can't find the `vault` or `genesis` commands, chances are you did not run
+the `jumpbox` script, refer to [the Prepare Bastion Host section][1] and make
+sure that you remain logged in as the user you creaded with `jumpbox`.  
 
-```
-* aws_subnet.prod-cf-edge-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d. status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
-* aws_subnet.prod-infra-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
-* aws_subnet.dev-infra-2: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
-```
-
-You can run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to
-replace the restricted zone.
-
-**No Vault or Genesis**
-
-Chances are you did not run the `jumpbox` script, refer to [the Bastion/Jumpbox section][1]
-and make sure that you remain logged in as your Jumpbox user during the rest of
-the deployment process. Nothing is done from the default bastion user.
-
-### ProtoBosh & Proto-Vault
+### Proto-BOSH & Shield
 
 ```
 Error Deploying Proto-BOSH with Shield Agent Job
 ```
 
 If you see the error below, then you are running the scripts and everything from
-the bastion user, you MUST use the Jumpbox scripts/users/Vault in order for it
+the bastion user, you MUST use the `jumpbox` scripts/users/Vault in order for it
 to be nice and not throw errors at you.
 
 ```
@@ -56,7 +39,24 @@ to be nice and not throw errors at you.
     Makefile:25: recipe for target 'deploy' failed
 ```
 
-## Bastion Host
+### Terraform
+
+When trying to `make all` to deploy the bastion host. Terraform will connect to
+AWS, using your **Access Key ID** and **Secret Key ID**, then spin up all the
+things it needs.  When it finishes, you should be left with a bunch of subnets,
+configured network ACLs, security groups, routing tables, a NAT instance (for
+public internet connectivity) and a bastion host.
+
+If the `deploy` or `all` step fails with errors like:
+
+```
+* aws_subnet.prod-cf-edge-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1e, us-east-1b, us-east-1d. status code: 400, request id: 8ddbe059-0818-48c2-a936-b551cd76cdeb
+* aws_subnet.prod-infra-0: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 876f72b2-6bda-4499-98c3-502d213635eb
+* aws_subnet.dev-infra-2: Error creating subnet: InvalidParameterValue: Value (us-east-1a) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1b, us-east-1d, us-east-1e. status code: 400, request id: 66fafa81-7718-46eb-a606-e4b98e3267b9
+```
+
+You can run `make destroy` to clean up, then add a line like `aws_az1 = "d"` to
+replace the restricted zone.
 
 ### Verify Keypair
 
