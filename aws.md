@@ -720,7 +720,7 @@ Genesis to the Vault.  Let's go put those credentials in the
 Vault:
 
 ```
-$ safe set secret/aws access_key secret_key
+$ safe set secret/us-west-2 access_key secret_key
 access_key [hidden]:
 access_key [confirm]:
 
@@ -1239,7 +1239,7 @@ Unseal Progress: 0
 Now, let's switch back to using `safe`:
 
 ```
-$ safe target https://10.4.1.16:8200 ops
+$ safe target https://10.4.1.16:8200 proto
 Now targeting proto at https://10.4.1.16:8200
 
 $ safe auth token
@@ -1252,8 +1252,8 @@ knock: knock
 
 ### Migrating Credentials
 
-You should now have two `safe` targets, one for the dev-Vault
-(named 'proto') and another for the real Vault (named 'ops'):
+You should now have two `safe` targets, one for first Vault
+(named 'init') and another for the real Vault (named 'proto'):
 
 ```
 $ safe targets
@@ -1263,7 +1263,7 @@ $ safe targets
 
 ```
 
-Our `ops` Vault should be empty; we can verify that with `safe
+Our `proto` Vault should be empty; we can verify that with `safe
 tree`:
 
 ```
@@ -1418,13 +1418,13 @@ $ genesis new deployment --template shield
 $ cd shield-deployments
 ```
 
-Now we can set up our `aws` site using the `aws` template, with a
+Now we can set up our `us-west-2` site using the `aws` template, with a
 `proto` environment inside of it:
 
 ```
-$ genesis new site --template aws aws
-$ genesis new environment aws proto
-$ cd aws/proto
+$ genesis new site --template us-west-2 aws
+$ genesis new environment us-west-2 proto
+$ cd us-west-2/proto
 $ make manifest
 5 error(s) detected:
  - $.compilation.cloud_properties.availability_zone: What availability zone is SHIELD deployed to?
@@ -1494,8 +1494,8 @@ properties:
       name: "default"
       plugin: "s3"
       config:
-        access_key_id: (( vault "secret/aws/proto/shield/aws:access_key" ))
-        secret_access_key: (( vault "secret/aws/proto/shield/aws:secret_key" ))
+        access_key_id: (( vault "secret/us-west-2/proto/shield/aws:access_key" ))
+        secret_access_key: (( vault "secret/us-west-2/proto/shield/aws:secret_key" ))
         bucket: xxxxxx # <- backup's s3 bucket
         prefix: "/"
     schedule:
@@ -1509,7 +1509,7 @@ properties:
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the pubic key to our
 Proto-BOSH.  We stuck it in the Vault, at
-`secret/aws/proto/shield/keys/core`, so let's get it back out for this
+`secret/us-west-2/proto/shield/keys/core`, so let's get it back out for this
 deployment:
 
 ```
@@ -1531,7 +1531,7 @@ Time to deploy!
 
 ```
 $ make deploy
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release shield/6.3.0 already exists...NO
 Using remote release `https://bosh.io/d/github.com/starkandwayne/shield-boshrelease?v=6.3.0'
 
@@ -1579,12 +1579,10 @@ things stood up quick and easy, including:
 - `vsphere` for VMWare ESXi virtualization clusters
 - `bosh-lite` for deploying and testing locally
 
-For purposes of illustration, let's choose `aws`:
-
 ```
-$ genesis new site --template aws aws
-Created site aws (from template aws):
-~/ops/bolo-deployments/aws
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
+~/ops/bolo-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
@@ -1606,10 +1604,10 @@ Created site aws (from template aws):
 Now, we can create our environment. We call it proto since we use one bolo for one site for now.
 
 ```
-$ cd aws/
-$ genesis new environment proto
-Created environment aws/proto:
-~/ops/bolo-deployments/aws/proto
+$ cd ~/ops/bolo-deployments/us-west-2
+$ genesis new env us-west-2 proto
+Created environment us-west-2/proto:
+~/ops/bolo-deployments/us-west-2/proto
 ├── Makefile
 ├── README
 ├── cloudfoundry.yml
@@ -1630,7 +1628,7 @@ of environment hooks for setting up credentials.
 Now let's make manifest.
 
 ```
-$ cd aws/proto
+$ cd ~/ops/bolo-deployments/us-west-2/proto
 $ make manifest
 
 2 error(s) detected:
@@ -1652,7 +1650,6 @@ According to the [Network Plan][netplan], the bolo deployment belongs in the
 **10.4.1.64/28** network, in zone 1 (a). Let's configure the availability zone in `properties.yml`:
 
 ```
-$ cd proto/
 $ cat properties.yml
 ---
 meta:
@@ -1734,7 +1731,7 @@ To add the release:
 ```
 $ cd ~/ops/shield-deployments
 $ genesis add release bolo latest
-$ cd us-west-2/proto
+$ cd ~/ops/shield-deployments/us-west-2/proto
 $ genesis use release bolo
 ```
 
@@ -1791,8 +1788,8 @@ collectors, and deployment properties.
 If we're not already targeting the ops vault, do so now to save frustration later.
 
 ```
-$ safe target ops
-Now targeting ops at https://10.4.1.16:8200
+$ safe target proto
+Now targeting proto at https://10.4.1.16:8200
 ```
 
 
@@ -1800,15 +1797,14 @@ From the `~/ops` folder let's generate a new `concourse` deployment, using the `
 
 ```
 $ genesis new deployment --template concourse
-$ cd concourse-deployments/
 ```
 
-Inside the `global` deployment level goes the site level definition.  For this concourse setup we'll use an `aws` template for an `aws` site.
+Inside the `global` deployment level goes the site level definition.  For this concourse setup we'll use an `aws` template for an `us-west-2` site.
 
 ```
-$ genesis new site --template aws aws
-Created site aws (from template aws):
-/home/user/ops/concourse-deployments/aws
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
+~/ops/concourse-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
@@ -2002,9 +1998,9 @@ Next lets create our site and environment:
 
 ```
 $ cd bosh-lite-deployments
-$ genesis new site --template aws aws
-Created site aws (from template aws):
-/home/gfranks/ops/bosh-lite-deployments/aws
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
+/home/gfranks/ops/bosh-lite-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
