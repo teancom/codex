@@ -1734,7 +1734,7 @@ To add the release:
 ```
 $ cd ~/ops/shield-deployments
 $ genesis add release bolo latest
-$ cd aws/proto
+$ cd us-west-2/proto
 $ genesis use release bolo
 ```
 
@@ -1796,7 +1796,7 @@ Now targeting ops at https://10.4.1.16:8200
 ```
 
 
-From the `~/deployments` folder let's generate a new `concourse` deployment, using the `--template` flag.
+From the `~/ops` folder let's generate a new `concourse` deployment, using the `--template` flag.
 
 ```
 $ genesis new deployment --template concourse
@@ -1829,11 +1829,11 @@ Finally now, because our vault is setup and targeted correctly we can generate o
 
 ```
 $ cd ~/ops/concourse-deployments
-$ genesis new environment aws proto
+$ genesis new environment us-west-2 proto
 Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/00_confirm_vault
 
-(*) ops   https://10.4.1.16:8200
-    proto http://127.0.0.1:8200
+(*) proto   https://10.4.1.16:8200
+    init    http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
 Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/gen_creds
@@ -1974,9 +1974,9 @@ Since our `alpha` site will be a bosh lite running on AWS, we will need to deplo
 First, lets make sure we're in the right place, targetting the right Vault:
 
 ```
-$ cd ~/deployments
-$ safe target ops
-Now targeting ops at https://10.4.1.16:8200
+$ cd ~/ops
+$ safe target proto
+Now targeting proto at https://10.4.1.16:8200
 ```
 
 Now we can create our repo for deploying the bosh-lite:
@@ -2024,7 +2024,7 @@ Created site aws (from template aws):
 $ genesis new env aws alpha
 Running env setup hook: /home/gfranks/ops/bosh-lite-deployments/.env_hooks/setup
 
-(*) ops	https://10.4.1.16:8200
+(*) proto	https://10.4.1.16:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]yes
 Setting up credentials in vault, under secret/aws/alpha/bosh-lite
@@ -2234,10 +2234,10 @@ To deploy CF to our alpha environment, we will need to first ensure we're target
 Vault/BOSH:
 
 ```
-$ cd ~/deployments
-$ safe target ops
+$ cd ~/ops
+$ safe target proto
 
-(*) ops	https://10.4.1.16:8200
+(*) proto	https://10.4.1.16:8200
 
 $ bosh target alpha
 Target set to `aws-alpha-bosh-lite'
@@ -2288,7 +2288,7 @@ Created site bosh-lite (from template bosh-lite):
 $ genesis new env bosh-lite alpha
 Running env setup hook: /home/gfranks/ops/cf-deployments/.env_hooks/00_confirm_vault
 
-(*) ops	https://10.4.1.16:8200
+(*) proto	https://10.4.1.16:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
 Running env setup hook: /home/gfranks/ops/cf-deployments/.env_hooks/setup_certs
@@ -2385,13 +2385,13 @@ We already have the `aws` site created, so now we will just need to create our n
 
 
 ```
-$ safe target ops
-Now targeting ops at http://10.10.10.6:8200
-$ genesis new env aws staging
+$ safe target proto
+Now targeting proto at http://10.10.10.6:8200
+$ genesis new env us-west-2 staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
 Running env setup hook: /home/centos/ops/bosh-deployments/.env_hooks/setup
 
- ops	http://10.10.10.6:8200
+ proto	http://10.10.10.6:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
 Setting up credentials in vault, under secret/aws/staging/bosh
@@ -2430,7 +2430,7 @@ Notice, unlike the Proto BOSH setup, we do not specify `--type bosh-init`. This 
 Let's try to deploy now, and see what information still needs to be resolved:
 
 ```
-$ cd aws/staging
+$ cd us-west-2/staging
 $ make deploy
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
@@ -2463,7 +2463,7 @@ meta:
     private_key: ~ # not needed, since not using bosh-lite
     ssh_key_name: your-ec2-keypair-name
     default_sgs: [wide-open]
-  shield_public_key: (( vault "secret/aws/proto/shield/keys/core:public" ))
+  shield_public_key: (( vault "secret/us-west-2/proto/shield/keys/core:public" ))
 EOF
 ```
 
@@ -2583,8 +2583,8 @@ Now it's time to move on to deploying our `beta` (staging) Cloud Foundry!
 
 #### Beta Cloud Foundry
 
-To deploy Cloud Foundry, we will go back into our ops directory, making use of `cf-deplyoments` repo
-created when we built our alpha site:
+To deploy Cloud Foundry, we will go back into our `ops` directory, making use of
+the `cf-deplyoments` repo created when we built our alpha site:
 
 ```
 $ cd ~/ops/cf-deployments
@@ -2593,15 +2593,15 @@ $ cd ~/ops/cf-deployments
 Also, make sure that you're targeting the right Vault, for good measure:
 
 ```
-$ safe target ops
+$ safe target proto
 ```
 
-We will now create an `aws` site for CF:
+We will now create an `us-west-2` site for CF:
 
 ```
-$ genesis new site --template aws aws
-Created site aws (from template aws):
-/home/centos/ops/cf-deployments/aws
+$ genesis new site --template aws us-west-2
+Created site us-west-2 (from template aws):
+/home/centos/ops/cf-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
@@ -2622,11 +2622,11 @@ Created site aws (from template aws):
 And the `staging` environment inside it:
 
 ```
-$ genesis new env aws staging
+$ genesis new env us-west-2 staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
 Running env setup hook: /home/centos/ops/cf-deployments/.env_hooks/00_confirm_vault
 
- ops	http://10.10.10.6:8200
+ proto	http://10.10.10.6:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
 Running env setup hook: /home/centos/ops/cf-deployments/.env_hooks/setup_certs
@@ -2656,7 +2656,7 @@ Created environment aws/staging:
 As you might have guessed, the next step will be to see what parameters we need to fill in:
 
 ```
-$ cd aws/staging
+$ cd us-west-2/staging
 $ make manifest
 72 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
@@ -2849,12 +2849,12 @@ For safety, let's store the certificates in Vault:
 
 ```
 $ cd out
-$ safe write secret/aws/staging/cf/tls/ca "csr@CertAuth.crl"
-$ safe write secret/aws/staging/cf/tls/ca "crt@CertAuth.crt"
-$ safe write secret/aws/staging/cf/tls/ca "key@CertAuth.key"
-$ safe write secret/aws/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
-$ safe write secret/aws/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
-$ safe write secret/aws/staging/cf/tls/domain "key@*.staging.<your domain>.key"
+$ safe write secret/us-west-2/staging/cf/tls/ca "csr@CertAuth.crl"
+$ safe write secret/us-west-2/staging/cf/tls/ca "crt@CertAuth.crt"
+$ safe write secret/us-west-2/staging/cf/tls/ca "key@CertAuth.key"
+$ safe write secret/us-west-2/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
+$ safe write secret/us-west-2/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
+$ safe write secret/us-west-2/staging/cf/tls/domain "key@*.staging.<your domain>.key"
 ```
 
 Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
