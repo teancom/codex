@@ -7,20 +7,20 @@ Services.  This guide provides the steps to create authentication credentials,
 generate a Virtual Private Cloud (VPC), then use Terraform to prepare a bastion
 host.
 
-From this bastion, we setup a special BOSH director we call the proto-BOSH server
-where software like Vault, Concourse, Bolo and SHEILD are setup in order to give
-each of the environments created after the proto-BOSH key benefits of:
+From this bastion, we setup a special BOSH Director we call the **proto-BOSH**
+server where software like Vault, Concourse, Bolo and SHEILD are setup in order
+to give each of the environments created after the **proto-BOSH** key benefits of:
 
 * Secure Credential Storage
 * Pipeline Management
 * Monitoring Framework
 * Backup and Restore Datastores
 
-Once the proto-BOSH environment is setup, the child environments will have the
-added benefit of being able to update their BOSH software as a release, rather
-than having to re-initialize with `bosh-init`.
+Once the **proto-BOSH** environment is setup, the child environments will have
+the added benefit of being able to update their BOSH software as a release,
+rather than having to re-initialize with `bosh-init`.
 
-This also increases the resiliency of all BOSH directors through monitoring and
+This also increases the resiliency of all BOSH Directors through monitoring and
 backups with software created by Stark & Wayne's engineers.
 
 And visibility into the progress and health of each application, release, or
@@ -28,8 +28,8 @@ package is available through the power of Concourse pipelines.
 
 ![Levels of Bosh][levels_of_bosh]
 
-In the above diagram, BOSH (1) is the proto-BOSH, while BOSH (2) and BOSH (3)
-are the per-site BOSH directors.
+In the above diagram, BOSH (1) is the **proto-BOSH**, while BOSH (2) and BOSH (3)
+are the per-site BOSH Directors.
 
 Now it's time to setup the credentials.
 
@@ -255,8 +255,8 @@ begin the teardown.  The second will shutdown the background process.
 ## Bastion Host
 
 The bastion host is the server the BOSH operator connects to, in order to perform
-commands that affect the _proto-BOSH_ Director and the software that gets deployed
-by it.
+commands that affect the **proto-BOSH** Director and the software that gets
+deployed by it.
 
 We'll be covering the configuration and deployment of each of these software
 step-by-step as we go along. By the time you're done working on the bastion
@@ -427,13 +427,13 @@ example: `us-west-2`.
 
 ### Environment Name
 
-All of the software the _proto-BOSH_ will deploy will be in the `proto` environment.
+All of the software the **proto-BOSH** will deploy will be in the `proto` environment.
 And by this point, you've [Setup Credentials][setup_credentials],
 [Used Terraform][use_terraform] to construct the IaaS components and
 [Configured a Bastion Host][bastion_host].  We're ready now to setup a BOSH
 Director on the bastion.
 
-The first step is to create a _vault_init_ process.
+The first step is to create a **vault-init** process.
 
 ### vault-init
 
@@ -449,7 +449,7 @@ using a BOSH-deployed Vault.  What we can do, however, is spin a single-threaded
 Vault server instance **on the bastion host**, and then migrate the credentials to
 the real Vault later.
 
-This we call a _vault-init_.  Because it precedes the _proto-BOSH_ and Vault
+This we call a **vault-init**.  Because it precedes the **proto-BOSH** and Vault
 deploy we'll be setting up later.
 
 The `jumpbox` script that we ran as part of setting up the bastion host installs
@@ -459,7 +459,7 @@ interacting with Vault (`safe`), but also the Vault server daemon itself.
 #### Start Server
 
 Were going to start the server and do an overview of what the output means.  To
-start the _vault-init_, run the `vault server` with the `-dev` flag.
+start the **vault-init**, run the `vault server` with the `-dev` flag.
 
 ```
 $ vault server -dev
@@ -503,7 +503,7 @@ do need to capture the output of the `Root Token`.
 
 #### Setup vault-init
 
-In order to setup the _vault-init_ we need to target the server and authenticate.
+In order to setup the **vault-init** we need to target the server and authenticate.
 We use `safe` as our CLI to do both commands.
 
 ```
@@ -525,7 +525,7 @@ Token: <paste your Root Token here>
 
 #### Test vault-init
 
-Here's a smoke test to see if you've setup the _vault-init_ correctly.
+Here's a smoke test to see if you've setup the **vault-init** correctly.
 
 ```
 $ safe set secret/handshake knock=knock
@@ -536,9 +536,9 @@ $ safe read secret/handshake
 knock: knock
 ```
 
-All set!  Now we can now build our deploy for the _proto-BOSH_.
+All set!  Now we can now build our deploy for the **proto-BOSH**.
 
-### Proto-BOSH
+### proto-BOSH
 
 ![proto-BOSH][bastion_2]
 
@@ -556,14 +556,14 @@ $ cd ~/ops
 ```
 
 Genesis has a template for BOSH deployments (including support for the
-_proto-BOSH_), so let's use that by passing `bosh` into the `--template` flag.
+**proto-BOSH**), so let's use that by passing `bosh` into the `--template` flag.
 
 ```
 $ genesis new deployment --template bosh
 $ cd bosh-deployments
 ```
 
-Next, we'll create a site and an environment from which to deploy our _proto-BOSH_.
+Next, we'll create a site and an environment from which to deploy our **proto-BOSH**.
 The BOSH template comes with some site templates to help you get started
 quickly, including:
 
@@ -607,7 +607,7 @@ Finally, let's create our new environment, and name it `proto`
 (that's `us-west-2/proto`, formally speaking).
 
 ```
-$ genesis new environment --type bosh-init us-west-2 proto
+$ genesis new env --type bosh-init us-west-2 proto
 Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
  init  http://127.0.0.1:8200
@@ -648,7 +648,7 @@ Created environment us-west-2/proto:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and stored them in
-our _vault-init_, under the `secret/us-west-2/proto/bosh` subtree.  Later, we'll
+our **vault-init**, under the `secret/us-west-2/proto/bosh` subtree.  Later, we'll
 migrate this subtree over to our real Vault, once it is up and spinning.
 
 #### Make Manifest
@@ -708,7 +708,7 @@ meta:
 ```
 
 I use the `(( concat ... ))` operator to [DRY][DRY] up the
-configuration.  This way, if we need to move the BOSH director to
+configuration.  This way, if we need to move the BOSH Director to
 a different region (for whatever reason) we just change
 `meta.aws.region` and the availability zone just tacks on "a".
 
@@ -784,13 +784,13 @@ Excellent.  We're down to two issues.
 
 We haven't deployed a SHIELD yet, so it may seem a bit odd that
 we're being asked for an SSH public key.  When we deploy our
-_proto-BOSH_ via `bosh-init`, we're going to spend a fair chunk of
+**proto-BOSH** via `bosh-init`, we're going to spend a fair chunk of
 time compiling packages on the bastion host before we can actually
 create and update the director VM.  `bosh-init` will delete the
 director VM before it starts this compilation phase, so we will be
 unable to do _anything_ while `bosh-init` is hard at work.  The
 whole process takes about 30 minutes, so we want to minimize the
-number of times we have to re-deploy _proto-BOSH_.  By specifying
+number of times we have to re-deploy **proto-BOSH**.  By specifying
 the SHIELD agent configuration up-front, we skip a re-deploy after
 SHIELD itself is up.
 
@@ -821,7 +821,7 @@ Now we can put references to our Vaultified keypair in
 $ cat credentials.yml
 ---
 meta:
-  shield_public_key: (( vault "secret/aws/proto/shield/keys/core:public" ))
+  shield_public_key: (( vault "secret/us-west-2/proto/shield/keys/core:public" ))
 ```
 
 You may want to take this opportunity to migrate
@@ -844,9 +844,9 @@ make: *** [manifest] Error 5
 So it's down to networking.
 
 Refer back to your [Network Plan][netplan], and find the
-subnet for the proto-BOSH.  If you're using the plan in this
+subnet for the **proto-BOSH**.  If you're using the plan in this
 repository, that would be `10.4.1.0/24`, and we're allocating
-`10.4.1.0/28` to our BOSH director.  Our `networking.yml` file,
+`10.4.1.0/28` to our BOSH Director.  Our `networking.yml` file,
 then, should look like this:
 
 ```
@@ -881,10 +881,9 @@ instance to be placed in, and what EC2 Security Groups it should
 be subject to.
 
 Under the `reserved` block, we reserve the IPs that Amazon
-reserves for its own use (see [Amazon's
-documentation][aws-subnets], specifically the "Subnet sizing"
-section), and everything outside of `10.4.1.0/28` (that is,
-`10.4.1.16` and above).
+reserves for its own use (see [Amazon's documentation][aws-subnets],
+specifically the "Subnet sizing" section), and everything outside of
+`10.4.1.0/28` (that is, `10.4.1.16` and above).
 
 Finally, in `static` we reserve the first usable IP (`10.4.1.4`)
 as static.  This will be assigned to our `bosh/0` director VM.
@@ -899,7 +898,7 @@ total 8
 -rw-r--r-- 1 ops staff 4572 Jun 28 14:24 manifest.yml
 ```
 
-Now we are ready to deploy _proto-BOSH_.
+Now we are ready to deploy **proto-BOSH**.
 
 ```
 $ make deploy
@@ -934,7 +933,7 @@ or grab a cup of tea.)
 
 All done?  Verify the deployment by trying to `bosh target` the
 newly-deployed Director.  First you're going to need to get the
-password out of our _vault-init_.
+password out of our **vault-init**.
 
 ```
 $ safe get secret/us-west-2/proto/bosh/users/admin
@@ -946,7 +945,7 @@ Then, run target the director:
 
 ```
 $ bosh target https://10.4.1.4:25555 proto-bosh
-Target set to `aws-proto-bosh'
+Target set to `us-west-2-proto-bosh'
 Your username: admin
 Enter password:
 Logged in as `admin'
@@ -956,7 +955,7 @@ Config
              ~/.bosh_config
 
 Director
-  Name       aws-proto-bosh
+  Name       us-west-2-proto-bosh
   URL        https://10.4.1.4:25555
   Version    1.3232.2.0 (00000000)
   User       admin
@@ -983,7 +982,7 @@ We're building the infrastructure environment's vault.
 
 ![Vault][bastion_3]
 
-Now that we have a proto-BOSH director, we can use it to deploy
+Now that we have a **proto-BOSH** Director, we can use it to deploy
 our real Vault.  We'll start with the Genesis template for Vault:
 
 ```
@@ -993,9 +992,9 @@ $ cd vault-deployments
 ```
 
 **NOTE**: What is the "ops" environment? Short for operations, it's the
-environment we're deploying the _proto-BOSH_ and all the extra software that
+environment we're deploying the **proto-BOSH** and all the extra software that
 monitors each of the child environments that will deployed later by the
-_proto-BOSH_ Director.
+**proto-BOSH** Director.
 
 As before (and as will become almost second-nature soon), let's
 create our `us-west-2` site using the `aws` template, and then create
@@ -1003,7 +1002,7 @@ the `ops` environment inside of that site.
 
 ```
 $ genesis new site --template aws us-west-2
-$ genesis new environment us-west-2 proto
+$ genesis new env us-west-2 proto
 ```
 
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.
@@ -1213,7 +1212,7 @@ your Vault will remain permanently sealed.
 **Store these seal keys and the root token somewhere secure!!**
 (A password manager like 1Password is an excellent option here.)
 
-Unlike the dev-mode _vault-init_ we spun up at the very outset,
+Unlike the dev-mode **vault-init** we spun up at the very outset,
 this Vault comes up sealed, and needs to be unsealed using three
 of the five keys above, so let's do that.
 
@@ -1311,7 +1310,7 @@ $ safe target proto -- tree
 Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
-    ├── aws/
+    ├── us-west-2/
     │   ├── proto/
     │   │   ├── bosh/
     │   │   │   ├── blobstore/
@@ -1371,7 +1370,7 @@ no one tries to re-purpose it later, and so that it doesn't get
 deleted. We also need to generate an access key for this user and store those credentials in the Vault:
 
 ```
-$ safe set secret/aws/proto/shield/aws access_key secret_key
+$ safe set secret/us-west-2/proto/shield/aws access_key secret_key
 access_key [hidden]:
 access_key [confirm]:
 
@@ -1423,7 +1422,7 @@ Now we can set up our `us-west-2` site using the `aws` template, with a
 
 ```
 $ genesis new site --template us-west-2 aws
-$ genesis new environment us-west-2 proto
+$ genesis new env us-west-2 proto
 $ cd us-west-2/proto
 $ make manifest
 5 error(s) detected:
@@ -1508,7 +1507,7 @@ properties:
 
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the pubic key to our
-Proto-BOSH.  We stuck it in the Vault, at
+**proto-BOSH**.  We stuck it in the Vault, at
 `secret/us-west-2/proto/shield/keys/core`, so let's get it back out for this
 deployment:
 
@@ -1599,9 +1598,7 @@ Created site us-west-2 (from template aws):
 2 directories, 10 files
 ```
 
-**NOTE**: The site name can be different from aws.
-
-Now, we can create our environment. We call it proto since we use one bolo for one site for now.
+Now, we can create our environment.
 
 ```
 $ cd ~/ops/bolo-deployments/us-west-2
@@ -1684,7 +1681,7 @@ networks:
 You can validate your manifest by running `make manifest` and
 ensuring that you get no errors (no output is a good sign).
 
-Then, you can deploy to your BOSH director via `make deploy`.
+Then, you can deploy to your BOSH Director via `make deploy`.
 
 Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Genesis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
 
@@ -1825,17 +1822,17 @@ Finally now, because our vault is setup and targeted correctly we can generate o
 
 ```
 $ cd ~/ops/concourse-deployments
-$ genesis new environment us-west-2 proto
-Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/00_confirm_vault
+$ genesis new env us-west-2 proto
+Running env setup hook: ~/ops/concourse-deployments/.env_hooks/00_confirm_vault
 
 (*) proto   https://10.4.1.16:8200
     init    http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
-Running env setup hook: /home/user/ops/concourse-deployments/.env_hooks/gen_creds
+Running env setup hook: ~/ops/concourse-deployments/.env_hooks/gen_creds
 Generating credentials for Concource CI
 Created environment aws/proto:
-/home/user/ops/concourse-deployments/aws/proto
+~/ops/concourse-deployments/us-west-2/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -1849,10 +1846,11 @@ Created environment aws/proto:
 
 ```
 
-Lets make the manifest
+Let's make the manifest:
+
 ```
-~/ops/concourse-deployments$ cd aws/proto/
-~/ops/concourse-deployments/aws/proto$ make manifest
+$ cd ~/ops/concourse-deployments/us-west-2/proto
+$ make manifest
 11 error(s) detected:
  - $.compilation.cloud_properties.availability_zone: What availability zone should your concourse VMs be in?
  - $.jobs.haproxy.templates.haproxy.properties.ha_proxy.ssl_pem: Want ssl? define a pem
@@ -1872,7 +1870,7 @@ Makefile:22: recipe for target 'manifest' failed
 make: *** [manifest] Error 5
 ```
 
-Again starting with Meta lines in `~/ops/concourse-deployments/aws/proto`:
+Again starting with Meta lines in `~/ops/concourse-deployments/us-west-2/proto`:
 
 ```
 $ cat properties.yml
@@ -1888,9 +1886,10 @@ Be sure to replace the x.x.x.x in the external_url above with the Elastic IP add
 
 The `~` means we won't use SSL certs for now.  If you have proper certs or want to use self signed you can add them to vault under the `web_ui:pem` key
 
-For networking, we put this inside proto environment level.
+For networking, we put this inside `proto` environment level.
+
 ```
-~/ops/concourse-deployments/aws/proto$ cat networking.yml
+$ cat networking.yml
 ---
 networks:
   - name: concourse
@@ -1912,7 +1911,7 @@ networks:
 After it is deployed, you can do a quick test by hitting the HAProxy machine
 
 ```
-~/ops/concourse-deployments/aws/proto$ bosh vms aws-proto-concourse
+$ bosh vms aws-proto-concourse
 Acting as user 'admin' on deployment 'aws-proto-concourse' on 'aws-proto-bosh'
 
 Director task 43
@@ -1931,7 +1930,12 @@ Task 43 done
 +--------------------------------------------------+---------+-----+---------+------------+
 
 VMs total: 6
-~/ops/concourse-deployments/aws/proto$ curl -i 10.4.1.51
+```
+
+Smoke test HAProxy IP address:
+
+```
+$ curl -i 10.4.1.51
 HTTP/1.1 200 OK
 Date: Thu, 07 Jul 2016 04:50:05 GMT
 Content-Type: text/html; charset=utf-8
@@ -1949,12 +1953,13 @@ You can then run on a your local machine
 $ ssh -L 8080:10.4.1.51:80 user@ci.x.x.x.x.sslip.io -i path_to_your_private_key
 ```
 
-and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user` with the jumpbox username on the bastion host
-and x.x.x.x with the IP address of the bastion host.
+and hit http://localhost:8080 to get the Concourse UI. Be sure to replace `user`
+with the `jumpbox` username on the bastion host and x.x.x.x with the IP address
+of the bastion host.
 
 ### Setup Pipelines Using Concourse
 
-To do: Need an example to show how to setup pipeline for deployments using Concourse.
+TODO: Need an example to show how to setup pipeline for deployments using Concourse.
 
 ## Building out Sites and Environments
 
@@ -1980,7 +1985,7 @@ Now we can create our repo for deploying the bosh-lite:
 ```
 $ genesis new deployment --template bosh-lite
 cloning from template https://github.com/starkandwayne/bosh-lite-deployment
-Cloning into '/home/gfranks/ops/bosh-lite-deployments'...
+Cloning into '~/ops/bosh-lite-deployments'...
 remote: Counting objects: 55, done.
 remote: Compressing objects: 100% (33/33), done.
 remote: Total 55 (delta 7), reused 55 (delta 7), pack-reused 0
@@ -2000,7 +2005,7 @@ Next lets create our site and environment:
 $ cd bosh-lite-deployments
 $ genesis new site --template aws us-west-2
 Created site us-west-2 (from template aws):
-/home/gfranks/ops/bosh-lite-deployments/us-west-2
+~/ops/bosh-lite-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
@@ -2017,15 +2022,15 @@ Created site us-west-2 (from template aws):
 
 2 directories, 11 files
 
-$ genesis new env aws alpha
-Running env setup hook: /home/gfranks/ops/bosh-lite-deployments/.env_hooks/setup
+$ genesis new env us-west-2 alpha
+Running env setup hook: ~/ops/bosh-lite-deployments/.env_hooks/setup
 
 (*) proto	https://10.4.1.16:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]yes
-Setting up credentials in vault, under secret/aws/alpha/bosh-lite
+Setting up credentials in vault, under secret/us-west-2/alpha/bosh-lite
 .
-└── secret/aws/alpha/bosh-lite
+└── secret/us-west-2/alpha/bosh-lite
     ├── blobstore/
 
 
@@ -2041,8 +2046,8 @@ Setting up credentials in vault, under secret/aws/alpha/bosh-lite
 
 
 
-Created environment aws/alpha:
-/home/gfranks/ops/bosh-lite-deployments/aws/alpha
+Created environment us-west-2/alpha:
+~/ops/bosh-lite-deployments/us-west-2/alpha
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -2063,7 +2068,7 @@ Created environment aws/alpha:
 Now lets try to deploy:
 
 ```
-$ cd aws/alpha/
+$ cd us-west-2/alpha/
 $ make deploy
   checking https://genesis.starkandwayne.com for details on latest stemcell bosh-aws-xen-hvm-ubuntu-trusty-go_agent
   checking https://genesis.starkandwayne.com for details on release bosh/256.2
@@ -2088,9 +2093,10 @@ Makefile:25: recipe for target 'deploy' failed
 make: *** [deploy] Error 3
 ```
 
-Looks like we only have a handful of parameters to update, all related to networking, so lets fill out our `networking.yml`,
-after consulting the [Network Plan][netplan] to find our global infrastructure network and the AWS console to find our subnet
-ID:
+Looks like we only have a handful of parameters to update, all related to
+networking, so lets fill out our `networking.yml`, after consulting the
+[Network Plan][netplan] to find our global infrastructure network and the AWS
+console to find our subnet ID:
 
 ```
 $ cat networking.yml
@@ -2155,18 +2161,18 @@ $ make deploy
     checking https://genesis.starkandwayne.com for details on release bosh-warden-cpi/29
   checking https://genesis.starkandwayne.com for details on release garden-linux/0.339.0
     checking https://genesis.starkandwayne.com for details on release port-forwarding/2
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release bosh/256.2 already exists...YES
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release bosh-warden-cpi/29 already exists...YES
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release garden-linux/0.339.0 already exists...YES
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release port-forwarding/2 already exists...YES
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking if stemcell already exists...
 Yes
-Acting as user 'admin' on deployment 'aws-alpha-bosh-lite' on 'aws-proto-bosh'
+Acting as user 'admin' on deployment 'us-west-2-alpha-bosh-lite' on 'us-west-2-proto-bosh'
 Getting deployment properties from director...
 Unable to get properties list from director, trying without it...
 
@@ -2185,29 +2191,29 @@ Started		2016-07-14 19:14:31 UTC
 Finished	2016-07-14 19:17:42 UTC
 Duration	00:03:11
 
-Deployed `aws-alpha-bosh-lite' to `aws-proto-bosh'
+Deployed `us-west-2-alpha-bosh-lite' to `us-west-2-proto-bosh'
 ```
 
 Now we can verify the deployment and set up our `bosh` CLI target:
 
 ```
 # grab the admin password for the bosh-lite
-$ safe get secret/aws/alpha/bosh-lite/users/admin
---- # secret/aws/alpha/bosh-lite/users/admin
+$ safe get secret/us-west-2/alpha/bosh-lite/users/admin
+--- # secret/us-west-2/alpha/bosh-lite/users/admin
 password: YOUR-PASSWORD-WILL-BE-HERE
 
 
 $ bosh target https://10.4.1.80:25555 alpha
-Target set to `aws-alpha-bosh-lite'
+Target set to `us-west-2-alpha-bosh-lite'
 Your username: admin
 Enter password:
 Logged in as `admin'
 $ bosh status
 Config
-             /home/gfranks/.bosh_config
+             ~/.bosh_config
 
  Director
-   Name       aws-alpha-bosh-lite
+   Name       us-west-2-alpha-bosh-lite
      URL        https://10.4.1.80:25555
    Version    1.3232.2.0 (00000000)
      User       admin
@@ -2236,7 +2242,7 @@ $ safe target proto
 (*) proto	https://10.4.1.16:8200
 
 $ bosh target alpha
-Target set to `aws-alpha-bosh-lite'
+Target set to `us-west-2-alpha-bosh-lite'
 ```
 
 Now we'll create our deployment repo for cloudfoundry:
@@ -2244,7 +2250,7 @@ Now we'll create our deployment repo for cloudfoundry:
 ```
 $ genesis new deployment --template cf
 cloning from template https://github.com/starkandwayne/cf-deployment
-Cloning into '/home/gfranks/ops/cf-deployments'...
+Cloning into '~/ops/cf-deployments'...
 remote: Counting objects: 268, done.
 remote: Compressing objects: 100% (3/3), done.
 remote: Total 268 (delta 0), reused 0 (delta 0), pack-reused 265
@@ -2265,7 +2271,7 @@ And generate our bosh-lite based alpha environment:
 $ cf cf-deployments
 $ genesis new site --template bosh-lite bosh-lite
 Created site bosh-lite (from template bosh-lite):
-/home/gfranks/ops/cf-deployments/bosh-lite
+~/ops/cf-deployments/bosh-lite
 ├── README
 └── site
     ├── disk-pools.yml
@@ -2282,20 +2288,20 @@ Created site bosh-lite (from template bosh-lite):
 2 directories, 10 files
 
 $ genesis new env bosh-lite alpha
-Running env setup hook: /home/gfranks/ops/cf-deployments/.env_hooks/00_confirm_vault
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/00_confirm_vault
 
 (*) proto	https://10.4.1.16:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
-Running env setup hook: /home/gfranks/ops/cf-deployments/.env_hooks/setup_certs
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/setup_certs
 Generating Cloud Foundry internal certs
 Uploading Cloud Foundry internal certs to Vault
-Running env setup hook: /home/gfranks/ops/cf-deployments/.env_hooks/setup_cf_secrets
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/setup_cf_secrets
 Creating JWT Signing Key
 Creating app_ssh host key fingerprint
 Generating secrets
 Created environment bosh-lite/alpha:
-/home/gfranks/ops/cf-deployments/bosh-lite/alpha
+~/ops/cf-deployments/bosh-lite/alpha
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -2333,7 +2339,7 @@ $ make deploy
   checking https://genesis.starkandwayne.com for details on release cf/237
   checking https://genesis.starkandwayne.com for details on release toolbelt/3.2.10
   checking https://genesis.starkandwayne.com for details on release postgres/1.0.3
-Acting as user 'admin' on 'aws-try-anything-bosh-lite'
+Acting as user 'admin' on 'us-west-2-try-anything-bosh-lite'
 Checking whether release cf/237 already exists...NO
 Using remote release `https://bosh.io/d/github.com/cloudfoundry/cf-release?v=237'
 
@@ -2353,7 +2359,7 @@ Started		2016-07-15 14:47:45 UTC
 Finished	2016-07-15 14:51:28 UTC
 Duration	00:03:43
 
-Deployed `bosh-lite-alpha-cf' to `aws-try-anything-bosh-lite'
+Deployed `bosh-lite-alpha-cf' to `us-west-2-try-anything-bosh-lite'
 ```
 
 And once complete, run the smoke tests for good measure:
@@ -2367,17 +2373,17 @@ We now have our alpha-environment's Cloud Foundry stood up!
 
 ### First Beta Environment
 
-Now that our `alpha` environment has been deployed, we can deploy our first beta environment to AWS. To do this, we will first deploy a BOSH director for the environment using the `bosh-deployments` repo we generated back when we built our [Proto BOSH](#proto-bosh), and then deploy Cloud Foundry on top of it.
+Now that our `alpha` environment has been deployed, we can deploy our first beta environment to AWS. To do this, we will first deploy a BOSH Director for the environment using the `bosh-deployments` repo we generated back when we built our [proto-BOSH](#proto-bosh), and then deploy Cloud Foundry on top of it.
 
 #### BOSH
 ```
 $ cd ~/ops/bosh-deployments
 $ bosh target proto-bosh
 $ ls
-aws  bin  global  LICENSE  README.md
+us-west-2  bin  global  LICENSE  README.md
 ```
 
-We already have the `aws` site created, so now we will just need to create our new environment, and deploy it. Different names (sandbox or staging) for Beta have been used for different customers, here we call it staging.
+We already have the `us-west-2` site created, so now we will just need to create our new environment, and deploy it. Different names (sandbox or staging) for Beta have been used for different customers, here we call it staging.
 
 
 ```
@@ -2385,14 +2391,14 @@ $ safe target proto
 Now targeting proto at http://10.10.10.6:8200
 $ genesis new env us-west-2 staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Running env setup hook: /home/centos/ops/bosh-deployments/.env_hooks/setup
+Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
  proto	http://10.10.10.6:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
-Setting up credentials in vault, under secret/aws/staging/bosh
+Setting up credentials in vault, under secret/us-west-2/staging/bosh
 .
-└── secret/aws/staging/bosh
+└── secret/us-west-2/staging/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -2404,8 +2410,8 @@ Setting up credentials in vault, under secret/aws/staging/bosh
     └── vcap
 
 
-Created environment aws/staging:
-/home/centos/ops/bosh-deployments/aws/staging
+Created environment us-west-2/staging:
+~/ops/bosh-deployments/us-west-2/staging
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -2421,7 +2427,7 @@ Created environment aws/staging:
 
 ```
 
-Notice, unlike the Proto BOSH setup, we do not specify `--type bosh-init`. This means we will use BOSH itself (in this case the Proto-BOSH) to deploy our sandbox BOSH. Again, the environment hook created all of our credentials for us, but this time we targeted the long-term Vault, so there will be no need for migrating credentials around.
+Notice, unlike the **proto-BOSH** setup, we do not specify `--type bosh-init`. This means we will use BOSH itself (in this case the **proto-BOSH**) to deploy our sandbox BOSH. Again, the environment hook created all of our credentials for us, but this time we targeted the long-term Vault, so there will be no need for migrating credentials around.
 
 Let's try to deploy now, and see what information still needs to be resolved:
 
@@ -2444,7 +2450,7 @@ Failed to merge templates; bailing...
 make: *** [deploy] Error 3
 ```
 
-Looks like we need to provide the same type of data as we did for Proto BOSH. Lets fill in the basic properties:
+Looks like we need to provide the same type of data as we did for **proto-BOSH**. Lets fill in the basic properties:
 
 ```
 $ cat > properties.yml <<EOF
@@ -2463,7 +2469,7 @@ meta:
 EOF
 ```
 
-This was a bit easier than it was for Proto BOSH, since our SHIELD public key exists now, and our
+This was a bit easier than it was for **proto-BOSH**, since our SHIELD public key exists now, and our
 AWS keys are already in Vault.
 
 Verifying our changes worked, we see that we only need to provide networking configuration at this point:
@@ -2480,7 +2486,7 @@ make: *** [deploy] Error 3
 
 ```
 
-All that remains is filling in our networking details, so lets go consult our [Network Plan](https://github.com/starkandwayne/codex/blob/master/network.md). We will place the BOSH director in the staging site's infrastructure network, in the first AZ we have defined (subnet name `staging-infra-0`, CIDR `10.4.32.0/24`). To do that, we'll need to update `networking.yml`:
+All that remains is filling in our networking details, so lets go consult our [Network Plan](https://github.com/starkandwayne/codex/blob/master/network.md). We will place the BOSH Director in the staging site's infrastructure network, in the first AZ we have defined (subnet name `staging-infra-0`, CIDR `10.4.32.0/24`). To do that, we'll need to update `networking.yml`:
 
 ```
 $ cat > networking.yml <<EOF
@@ -2518,7 +2524,7 @@ Checking whether release shield/6.2.1 already exists...YES
 Acting as user 'admin' on 'aws-proto-bosh-microboshen-aws'
 Checking if stemcell already exists...
 Yes
-Acting as user 'admin' on deployment 'aws-staging-bosh' on 'aws-proto-bosh-microboshen-aws'
+Acting as user 'admin' on deployment 'us-west-2-staging-bosh' on 'aws-proto-bosh-microboshen-aws'
 Getting deployment properties from director...
 
 Detecting deployment changes
@@ -2555,17 +2561,17 @@ Started		2016-07-08 17:23:47 UTC
 Finished	2016-07-08 17:34:46 UTC
 Duration	00:10:59
 
-Deployed 'aws-staging-bosh' to 'aws-proto-bosh'
+Deployed 'us-west-2-staging-bosh' to 'us-west-2-proto-bosh'
 ```
 
-This will take a little less time than Proto BOSH did (some packages were already compiled), and the next time you deploy, it go by much quicker, as all the packages should have been compiled by now (unless upgrading BOSH or the stemcell).
+This will take a little less time than **proto-BOSH** did (some packages were already compiled), and the next time you deploy, it go by much quicker, as all the packages should have been compiled by now (unless upgrading BOSH or the stemcell).
 
-Once the deployment finishes, target the new BOSH director to verify it works:
+Once the deployment finishes, target the new BOSH Director to verify it works:
 
 ```
-$ safe get secret/aws/staging/bosh/users/admin # grab the admin user's password for bosh
-$ bosh target https://10.4.32.4:25555 aws-staging
-Target set to 'aws-staging-bosh'
+$ safe get secret/us-west-2/staging/bosh/users/admin # grab the admin user's password for bosh
+$ bosh target https://10.4.32.4:25555 us-west-2-staging
+Target set to 'us-west-2-staging-bosh'
 Your username: admin
 Enter password:
 Logged in as 'admin'
@@ -2597,7 +2603,7 @@ We will now create an `us-west-2` site for CF:
 ```
 $ genesis new site --template aws us-west-2
 Created site us-west-2 (from template aws):
-/home/centos/ops/cf-deployments/us-west-2
+~/ops/cf-deployments/us-west-2
 ├── README
 └── site
     ├── disk-pools.yml
@@ -2620,20 +2626,20 @@ And the `staging` environment inside it:
 ```
 $ genesis new env us-west-2 staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Running env setup hook: /home/centos/ops/cf-deployments/.env_hooks/00_confirm_vault
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/00_confirm_vault
 
  proto	http://10.10.10.6:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
-Running env setup hook: /home/centos/ops/cf-deployments/.env_hooks/setup_certs
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/setup_certs
 Generating Cloud Foundry internal certs
 Uploading Cloud Foundry internal certs to Vault
-Running env setup hook: /home/centos/ops/cf-deployments/.env_hooks/setup_cf_secrets
+Running env setup hook: ~/ops/cf-deployments/.env_hooks/setup_cf_secrets
 Creating JWT Signing Key
 Creating app_ssh host key fingerprint
 Generating secrets
-Created environment aws/staging:
-/home/centos/ops/cf-deployments/aws/staging
+Created environment us-west-2/staging:
+~/ops/cf-deployments/us-west-2/staging
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml
@@ -2747,9 +2753,9 @@ meta:
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
 ```
-$ safe gen 40 secret/aws/staging/cf/rds password
-$ safe get secret/aws/staging/cf/rds
---- # secret/aws/staging/rds
+$ safe gen 40 secret/us-west-2/staging/cf/rds password
+$ safe get secret/us-west-2/staging/cf/rds
+--- # secret/us-west-2/staging/rds
 password: pqzTtCTz7u32Z8nVlmvPotxHsSfTOvawRjnY7jTW
 ```
 
@@ -2797,11 +2803,11 @@ meta:
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault "secret/aws/staging/cf/rds:password" ))
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
     uaadb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
       user: "admin"
-      pass: (( vault "secret/aws/staging/cf/rds:password" ))
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
 ```
 
 Now it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
@@ -3151,7 +3157,7 @@ That should be it, finally. Let's deploy!
 ```
 $ make deploy
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Acting as user 'admin' on 'aws-staging-bosh'
+Acting as user 'admin' on 'us-west-2-staging-bosh'
 Checking whether release cf/237 already exists...NO
 Using remote release 'https://bosh.io/d/github.com/cloudfoundry/cf-release?v=237'
 
@@ -3167,7 +3173,7 @@ Started		2016-07-08 17:23:47 UTC
 Finished	2016-07-08 17:34:46 UTC
 Duration	00:10:59
 
-Deployed 'aws-staging-cf' to 'aws-staging-bosh'
+Deployed 'us-west-2-staging-cf' to 'us-west-2-staging-bosh'
 
 ```
 
@@ -3179,7 +3185,7 @@ Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running i
 
 Amaze has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
 
-If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/aws/staging` directory. In the following example, you scale runners in both AZ to 2 and you change resource pool `small_z1` to use `m3.medium` type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/us-west-2/staging` directory. In the following example, you scale runners in both AZ to 2 and you change resource pool `small_z1` to use `m3.medium` type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
 
 ```
 jobs:
@@ -3206,7 +3212,7 @@ correct ELB for this environment, and that the ELB has the correct SSL certifica
 
 ### Production Environment
 
-Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
+Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH Director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
 
 ### Next Steps
 
