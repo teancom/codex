@@ -1,7 +1,6 @@
 # Style Guide
 
-The following conventions help keep our documents easy to use and read.  And give
-others answers to questions like "Why is that **bold** instead of _italic_?".
+The following conventions help keep our documents easy to use and read.
 
 ## Commands
 
@@ -91,16 +90,21 @@ attention to the reader's eye.  For example what word do you see in the next
 paragraph?
 
 > I am the very model of a modern Major-General,
-> I've information vegetable, animal, and mineral,
-> I know the kings of **England**, and I quote the fights historical
-> From Marathon to Waterloo, in order categorical;
+I've information vegetable, animal, and mineral,
+I know the kings of **England**, and I quote the fights historical
+From Marathon to Waterloo, in order categorical;
 
-In presenting step-by-step instructions, it's good to highlight the "final blow"
-in bold.
-
-Open Browser > Type "http://lmgtfy.com/" into the Search Bar > Search for **Captain Obvious**.
+The first thing you're going to need is a combination **Access Key ID** /
+**Secret Key ID**.
 
 ### Italic
+
+Here's an _italic_ example place holder.
+
+Next, find the `cf` user and click on the username. This should bring up a
+summary of the user with things like the _User ARN_, _Groups_, etc.  In the
+bottom half of the Summary panel, you can see some tabs, and one of those tabs
+is _Permissions_.  Click on that one.
 
 ### Note Commentary
 
