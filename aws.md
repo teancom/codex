@@ -1140,7 +1140,7 @@ And then let's give the deploy a whirl:
 
 ```
 $ make deploy
-Acting as user 'admin' on 'aws-proto-bosh'
+Acting as user 'admin' on 'us-west-2-proto-bosh'
 Checking whether release consul/20 already exists...NO
 Using remote release `https://bosh.io/d/github.com/cloudfoundry-community/consul-boshrelease?v=20'
 
@@ -1240,10 +1240,10 @@ Now, let's switch back to using `safe`:
 
 ```
 $ safe target https://10.4.1.16:8200 ops
-Now targeting ops at https://10.4.1.16:8200
+Now targeting proto at https://10.4.1.16:8200
 
 $ safe auth token
-Authenticating against ops at https://10.4.1.16:8200
+Authenticating against proto at https://10.4.1.16:8200
 Token:
 
 $ safe set secret/handshake knock=knock
@@ -1258,8 +1258,8 @@ You should now have two `safe` targets, one for the dev-Vault
 ```
 $ safe targets
 
-(*) ops     https://10.4.1.16:8200
-    proto   http://127.0.0.1:8200
+(*) proto     https://10.4.1.16:8200
+    init      http://127.0.0.1:8200
 
 ```
 
@@ -1267,8 +1267,8 @@ Our `ops` Vault should be empty; we can verify that with `safe
 tree`:
 
 ```
-$ safe target ops -- tree
-Now targeting ops at https://10.4.1.16:8200
+$ safe target proto -- tree
+Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
     └── handshake
@@ -1281,38 +1281,38 @@ which is exactly what we need to migrate from our dev-Vault to
 our real one:
 
 ```
-$ safe target proto -- export secret | \
-  safe target ops   -- import
-Now targeting ops at https://10.4.1.16:8200
-Now targeting proto at http://127.0.0.1:8200
-wrote secret/aws/proto/shield/webui
-wrote secret/aws/test/bosh/db
-wrote secret/aws/test/bosh/nats
-wrote secret/aws/proto/bosh/blobstore/director
-wrote secret/aws/proto/shield/daemon
-wrote secret/aws/proto/shield/db
-wrote secret/aws/proto/shield/keys/core
-wrote secret/aws/proto/shield/sessionsdb
-wrote secret/aws/test/bosh/blobstore/director
-wrote secret/aws/test/bosh/users/admin
-wrote secret/aws/test/bosh/users/hm
-wrote secret/aws/proto/bosh/blobstore/agent
-wrote secret/aws/proto/bosh/users/admin
-wrote secret/aws/proto/bosh/users/hm
-wrote secret/aws/proto/bosh/db
-wrote secret/aws/test/bosh/blobstore/agent
-wrote secret/aws/test/bosh/vcap
+$ safe target init -- export secret | \
+  safe target proto   -- import
+Now targeting proto at https://10.4.1.16:8200
+Now targeting init at http://127.0.0.1:8200
+wrote secret/us-west-2/proto/shield/webui
+wrote secret/us-west-2/test/bosh/db
+wrote secret/us-west-2/test/bosh/nats
+wrote secret/us-west-2/proto/bosh/blobstore/director
+wrote secret/us-west-2/proto/shield/daemon
+wrote secret/us-west-2/proto/shield/db
+wrote secret/us-west-2/proto/shield/keys/core
+wrote secret/us-west-2/proto/shield/sessionsdb
+wrote secret/us-west-2/test/bosh/blobstore/director
+wrote secret/us-west-2/test/bosh/users/admin
+wrote secret/us-west-2/test/bosh/users/hm
+wrote secret/us-west-2/proto/bosh/blobstore/agent
+wrote secret/us-west-2/proto/bosh/users/admin
+wrote secret/us-west-2/proto/bosh/users/hm
+wrote secret/us-west-2/proto/bosh/db
+wrote secret/us-west-2/test/bosh/blobstore/agent
+wrote secret/us-west-2/test/bosh/vcap
 wrote secret/handshake
-wrote secret/aws/proto/bosh/nats
-wrote secret/aws/proto/bosh/vcap
-wrote secret/aws/proto/vault/tls
+wrote secret/us-west-2/proto/bosh/nats
+wrote secret/us-west-2/proto/bosh/vcap
+wrote secret/us-west-2/proto/vault/tls
 
-$ safe target ops -- tree
-Now targeting ops at https://10.4.1.16:8200
+$ safe target proto -- tree
+Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
     ├── aws/
-    │   ├── ops/
+    │   ├── proto/
     │   │   ├── bosh/
     │   │   │   ├── blobstore/
     │   │   │   │   ├── agent
@@ -1413,7 +1413,7 @@ want to create our own policy. Go to the IAM user you just created, click `permi
 We'll start out with the Genesis template for SHIELD:
 
 ```
-$ cd ~/deployments
+$ cd ~/ops
 $ genesis new deployment --template shield
 $ cd shield-deployments
 ```
@@ -1566,7 +1566,7 @@ To get started, you're going to need to create a Genesis
 deployments repo for your Bolo deployments:
 
 ```
-$ cd ~/deployments
+$ cd ~/ops
 $ genesis new deployment --template bolo
 $ cd bolo-deployments
 ```
