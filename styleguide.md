@@ -1,6 +1,7 @@
 # Style Guide
 
-To keep things consistent between documents here are some conventions we use.
+The following conventions help keep our documents easy to use and read.  And give
+others answers to questions like "Why is that **bold** instead of _italic_?".
 
 ## Commands
 
@@ -39,7 +40,6 @@ Created site us-west-2 (from template aws):
     └── update.yml
 
 2 directories, 13 files
-
 ```
 
 It's only recommended to do the presentation once, when introducing a new command,
@@ -54,23 +54,51 @@ $ mkdir -p ~/ops
 $ cd ~/ops
 ```
 
-
 ## Typography
 
 ### Capitalization
 
-When to capitalize and not?
-
-If it's a proper noun, like The White House, it needs to be capitalized.  Welcome
-to \`merica.
+When to capitalize and not?  If it's a proper noun, like The White House, it
+needs to be capitalized.  Welcome to Merica\`.
 
 ![merica][merica]
 
+Software products like Vault or Concourse are proper names.  An exception is
+SHIELD, where we up-case the entire word.
+
 ### Monospace
 
-The names of software like `genesis`, `bosh-init`
+* Inline `monospace`.
+
+The names of software like `genesis`, `bosh-init`, `bosh_cli`.
+
+* Code blocks.
+
+Used to give example commands and output.
+
+```
+$ whoami
+tylerbird
+```
+
+The `whoami` is the _command_ and the `tylerbird` on the next line is the _output
+of the command_.
 
 ### Bold
+
+To highlight a word or sentence, so it stands out when scanning and draws
+attention to the reader's eye.  For example what word do you see in the next
+paragraph?
+
+> I am the very model of a modern Major-General,
+> I've information vegetable, animal, and mineral,
+> I know the kings of **England**, and I quote the fights historical
+> From Marathon to Waterloo, in order categorical;
+
+In presenting step-by-step instructions, it's good to highlight the "final blow"
+in bold.
+
+Open Browser > Type "http://lmgtfy.com/" into the Search Bar > Search for **Captain Obvious**.
 
 ### Italic
 
@@ -82,9 +110,8 @@ information.
 
 Use bold and a colon to start the note.
 
-**NOTE**: "I Love Lamp."  "Are you just saying that or do you really love the
-lamp?" "**I Love Lamp.**"
-
+**NOTE**: "I Love Lamp."  "Are you just saying that you love the lamp or do you
+really love the lamp?" "**I Love Lamp.**"
 
 [//]: # (Images, put in /images folder)
 
