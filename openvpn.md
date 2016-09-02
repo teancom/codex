@@ -53,7 +53,7 @@ $ bosh target proto
 Target set to `aws-proto-bosh'
 $ genesis new deployment --template openvpn
 cloning from template https://github.com/starkandwayne/openvpn-deployment
-Cloning into '/home/gfranks/ops/openvpn-deployments'...
+Cloning into '~/ops/openvpn-deployments'...
 remote: Counting objects: 47, done.
 remote: Compressing objects: 100% (27/27), done.
 Unpacking objects: 100% (47/47), done.
@@ -76,7 +76,7 @@ cd openvpn-deployments
 $ genesis new site --template aws aws
 Treating 'development' version as up-to-date with 0.0.14
 Created site aws (from template aws):
-/home/gfranks/ops/openvpn-deployments/aws
+~/ops/openvpn-deployments/aws
 ├── README
 └── site
     ├── disk-pools.yml
@@ -100,7 +100,7 @@ And lastly, the OpenVPN environment for the global infrastructure:
 $ genesis new env aws proto
 Treating 'development' version as up-to-date with 0.0.14
 Created environment aws/proto:
-/home/gfranks/ops/openvpn-deployments/aws/proto
+~/ops/openvpn-deployments/aws/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml

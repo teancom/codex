@@ -12,11 +12,9 @@ If you can't find the `vault` or `genesis` commands, chances are you did not run
 the `jumpbox` script, refer to [the Prepare Bastion Host section][1] and make
 sure that you remain logged in as the user you creaded with `jumpbox`.  
 
-### Proto-BOSH & Shield
+### proto-BOSH & Shield
 
-```
-Error Deploying Proto-BOSH with Shield Agent Job
-```
+Error Deploying **proto-BOSH** with Shield Agent Job.
 
 If you see the error below, then you are running the scripts and everything from
 the bastion user, you MUST use the `jumpbox` scripts/users/Vault in order for it

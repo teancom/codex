@@ -2,6 +2,13 @@
 
 The following conventions help keep our documents easy to use and read.
 
+## Decisions
+
+* **vault-init** is named after `bosh-init`.  It is put in bold, though because
+it's a documented process, rather than a script/binary.
+
+* Mention **proto-BOSH** also in bold.
+
 ## Commands
 
 ### Present then Provide
