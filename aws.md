@@ -474,17 +474,6 @@ immediately begin using the Vault CLI.
 A vault being unsealed sounds like a bad thing right?  But if you think about it
 like at a bank, you can't get to what's in a vault unless it's unsealed.
 
-Next we see the address and port.  We'll use that in a bit to set CLI target with
-`safe`.
-
-
-```
-The only step you need to take is to set the following
-environment variables:
-
-    export VAULT_ADDR='http://127.0.0.1:8200'
-```
-
 And in dev mode, `vault server` gives the user the tools needed to authenticate.
 We'll be using these soon when we log in.
 
@@ -505,6 +494,8 @@ do need to capture the output of the `Root Token`.
 
 In order to setup the **vault-init** we need to target the server and authenticate.
 We use `safe` as our CLI to do both commands.
+
+The local `vault server` runs on `127.0.0.1` and on port `8200`.
 
 ```
 $ safe target init http://127.0.0.1:8200
@@ -688,10 +679,6 @@ Genesis templates:
 - $.meta.aws.secret_key: Please supply an AWS Secret Key
 ```
 
-(As you can see, I'm using the AWS site for this run-through.  On
-other environments, using other templates, your mileage will
-vary.)
-
 This is easy enough to supply.  We'll put these properties in
 `properties.yml`:
 
@@ -843,8 +830,8 @@ make: *** [manifest] Error 5
 
 So it's down to networking.
 
-Refer back to your [Network Plan][netplan], and find the
-subnet for the **proto-BOSH**.  If you're using the plan in this
+Refer back to your [Network Plan][netplan], and find the `global-infra-0`
+subnet for the proto-BOSH in the AWS Console.  If you're using the plan in this
 repository, that would be `10.4.1.0/24`, and we're allocating
 `10.4.1.0/28` to our BOSH Director.  Our `networking.yml` file,
 then, should look like this:
