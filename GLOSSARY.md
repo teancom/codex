@@ -26,7 +26,7 @@ Accessible from the internet, this server allows operators to gain access to ser
 
 ## proto-BOSH
 
-A BOSH Director that sits before other site level BOSH Directors (staging/production) in order to help enable more rapid updates to the child-level Directors.
+A BOSH Director that sits before other site-level BOSH Directors (staging/production) in order to help enable more rapid updates to the site-level Directors.
 
 ## [safe](https://github.com/starkandwayne/safe)
 
@@ -47,3 +47,7 @@ Template merge tool for BOSH YML files.
 ## [vault](https://www.vaultproject.io/)
 
 A tool that manages secrets.
+
+## vault-init
+
+A temporary Vault server used to store secrets during the creation of the `proto-BOSH` Director.  Once the `proto-BOSH` is complete, secrets are migrated to the Vault server in the `proto` environment.

@@ -1897,6 +1897,15 @@ resource "aws_instance" "bastion" {
         private_key = "${file("${var.aws_key_file}")}"
     }
   }
+  provisioner "file" {
+    source = "${var.aws_key_file}"
+    destination = "/home/ubuntu/.ssh/bosh.pem"
+    connection {
+        type = "ssh"
+        user = "ubuntu"
+        private_key = "${file("${var.aws_key_file}")}"
+    }
+  }
 }
 output "box.bastion.public" {
   value = "${aws_instance.bastion.public_ip}"

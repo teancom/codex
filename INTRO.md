@@ -7,7 +7,7 @@ value that simply using BOSH and Cloud Foundry might bring.
 
 Each environment gets the benefit of:
 
-* Agility and Resiliency for BOSH using a Proto-BOSH pattern
+* Agility and Resiliency for BOSH using a **proto-BOSH** pattern
 * Backups and Restores with [SHIELD][shield]
 * Advanced Monitoring with the [Bolo][bolo] Platform
 * Secure template driven manifests using [Genesis][genesis], [Spruce][spruce] and [Vault][vault]

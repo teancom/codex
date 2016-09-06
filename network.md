@@ -50,13 +50,13 @@ networks (i.e. cf-edge-0, cf-edge-1, cf-0, cf-1, etc.).
 
 | Site    | Subnet       | Subnet         | #    | Zone  | Name                 | Purpose                |
 | ------- | ------------ | -------------- | ---- | ----- | -------------------- | ---------------------- |
-| infra   | 10.4.0.0/20  |                | 4096 |       |                      |                        |
+| global  | 10.4.0.0/20  |                | 4096 |       |                      |                        |
 |         |              | 10.4.0.0/24    |  254 |     1 | dmz                  | NAT / bastion / etc.   |
 |         |              | 10.4.1.0/24    |  254 |     1 | global-infra-0       | Global Infrastructure  |
 |         |              | 10.4.2.0/24    |  254 |     2 | global-infra-1       | Global Infrastructure  |
 |         |              | 10.4.3.0/24    |  254 |     3 | global-infra-2       | Global Infrastructure  |
-|         |              | 10.4.4.0/25    |  16 |      1 | global-openvpn-0     | Global OpenVPN         |
-|         |              | 10.4.4.128/25  |  16 |      2 | global-openvpn-1     | Global OpenVPN         |
+|         |              | 10.4.4.0/25    |  126 |     1 | global-openvpn-0     | Global OpenVPN         |
+|         |              | 10.4.4.128/25  |  126 |     2 | global-openvpn-1     | Global OpenVPN         |
 | dev     | 10.4.16.0/20 |                | 4096 |       |                      |                        |
 |         |              | 10.4.16.0/24   |  254 |     1 | dev-infra-0          | Site Infrastructure    |
 |         |              | 10.4.17.0/24   |  254 |     2 | dev-infra-1          | Site Infrastructure    |
@@ -114,7 +114,7 @@ networks (i.e. cf-edge-0, cf-edge-1, cf-0, cf-1, etc.).
 
 ## Global Infrastructure IP Allocation
 
-The `infra` "site" consists of three zone-isolated subnets.  Inside of those
+The `global` "site" consists of three zone-isolated subnets.  Inside of those
 subnets, we can further sub-divide (albeit purely for allocation's sake) for
 the different infrastructural deployments.  Note that these sub-divisions
 will not introduce new gateways, netmasks or broadcast addresses, rather
@@ -129,12 +129,12 @@ deployments.
 | vault      | 10.4.3.16/28 |  16 |    3 | Secure Vault                    |
 | shield     | 10.4.1.32/28 |  16 |    1 | SHIELD Backup/Restore Core      |
 | concourse  | 10.4.1.48/28 |  16 |    1 | Runway Concourse                |
-| concourse  | 10.4.2.48/28 |  16 |    2 | Concourse overflow (if scaling exeeds the limits of the above subnet) |
+| concourse  | 10.4.2.48/28 |  16 |    2 | Concourse overflow (if scaling exceeds the limits of the above subnet) |
 | bolo       | 10.4.1.64/28 |  16 |    1 | Monitoring                      |
 | alpha site | 10.4.1.80/28 |  16 |    1 | alpha site bosh-lite            |
 
 
 Most infrastructural deployments are not highly available, nor even
 HA-capable, so they do not need to be striped across the three zone-isolated
-subnets.  `vault` is the only HA deployment in the bunch, however, so it
+subnets.  Vault is the only HA deployment in the bunch, however, so it
 _is_ deployed across three `/28` ranges, one per subnet.
