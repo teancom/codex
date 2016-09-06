@@ -2737,6 +2737,8 @@ meta:
         region: us-west-2
 ```
 
+#### Setup RDS Database
+
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
 ```
