@@ -551,7 +551,7 @@ Genesis has a template for BOSH deployments (including support for the
 
 ```
 $ genesis new deployment --template bosh
-$ cd bosh-deployments
+$ cd ~/ops/bosh-deployments
 ```
 
 Next, we'll create a site and an environment from which to deploy our **proto-BOSH**.
@@ -649,7 +649,7 @@ can create a manifest, or (a more likely case) we still have to
 provide some critical information:
 
 ```
-$ cd us-west-2/proto
+$ cd ~/ops/bosh-deployments/us-west-2/proto
 $ make manifest
 9 error(s) detected:
  - $.meta.aws.access_key: Please supply an AWS Access Key
@@ -690,8 +690,8 @@ meta:
     region: us-west-2
     azs:
       z1: (( concat meta.aws.region "a" ))
-    access_key: (( vault "secret/aws:access_key" ))
-    secret_key: (( vault "secret/aws:secret_key" ))
+    access_key: (( vault "secret/us-west-2:access_key" ))
+    secret_key: (( vault "secret/us-west-2:secret_key" ))
 ```
 
 I use the `(( concat ... ))` operator to [DRY][DRY] up the
@@ -733,9 +733,20 @@ Makefile:22: recipe for target 'manifest' failed
 make: *** [manifest] Error 5
 ```
 
-Better. Let's configure our `cloud_provider` for AWS, using our EC2
-key pair. We need copy our EC2 private key to bastion host and path to the key
-for `private_key` entry in the following `properties.yml`.
+Better. Let's configure our `cloud_provider` for AWS, using our EC2 key pair.
+We need copy our EC2 private key to bastion host and path to the key for
+`private_key` entry in the following `properties.yml`.
+
+
+On your local computer, you can copy to the clipboard with the `pbcopy` command
+on a macOS machine:
+
+```
+cat ~/.ssh/cf-deploy.pem | pbcopy
+<paste values to /path/to/the/ec2/key.pem>
+```
+
+Then add the following to the `properties.yml` file.
 
 ```
 $ cat properties.yml
@@ -745,8 +756,8 @@ meta:
     region: us-west-2
     azs:
       z1: (( concat meta.aws.region "a" ))
-    access_key: (( vault "secret/aws:access_key" ))
-    secret_key: (( vault "secret/aws:secret_key" ))
+    access_key: (( vault "secret/us-west-2:access_key" ))
+    secret_key: (( vault "secret/us-west-2:secret_key" ))
     private_key: /path/to/the/ec2/key.pem
     ssh_key_name: your-ec2-keypair-name
     default_sgs:
@@ -975,7 +986,7 @@ our real Vault.  We'll start with the Genesis template for Vault:
 ```
 $ cd ~/ops
 $ genesis new deployment --template vault
-$ cd vault-deployments
+$ cd ~/ops/vault-deployments
 ```
 
 **NOTE**: What is the "ops" environment? Short for operations, it's the
@@ -995,7 +1006,7 @@ $ genesis new env us-west-2 proto
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.
 
 ```
-$ cd aws/proto
+$ cd ~/ops/vault-deployments/us-west-2/proto
 $ make manifest
 10 error(s) detected:
  - $.compilation.cloud_properties.availability_zone: Define the z1 AWS availability zone
@@ -1268,72 +1279,50 @@ our real one:
 
 ```
 $ safe target init -- export secret | \
-  safe target proto   -- import
+  safe target proto -- import
 Now targeting proto at https://10.4.1.16:8200
 Now targeting init at http://127.0.0.1:8200
-wrote secret/us-west-2/proto/shield/webui
-wrote secret/us-west-2/test/bosh/db
-wrote secret/us-west-2/test/bosh/nats
 wrote secret/us-west-2/proto/bosh/blobstore/director
-wrote secret/us-west-2/proto/shield/daemon
-wrote secret/us-west-2/proto/shield/db
-wrote secret/us-west-2/proto/shield/keys/core
-wrote secret/us-west-2/proto/shield/sessionsdb
-wrote secret/us-west-2/test/bosh/blobstore/director
-wrote secret/us-west-2/test/bosh/users/admin
-wrote secret/us-west-2/test/bosh/users/hm
-wrote secret/us-west-2/proto/bosh/blobstore/agent
-wrote secret/us-west-2/proto/bosh/users/admin
-wrote secret/us-west-2/proto/bosh/users/hm
 wrote secret/us-west-2/proto/bosh/db
-wrote secret/us-west-2/test/bosh/blobstore/agent
-wrote secret/us-west-2/test/bosh/vcap
-wrote secret/handshake
-wrote secret/us-west-2/proto/bosh/nats
 wrote secret/us-west-2/proto/bosh/vcap
 wrote secret/us-west-2/proto/vault/tls
+wrote secret/us-west-2
+wrote secret/us-west-2/proto/bosh/blobstore/agent
+wrote secret/us-west-2/proto/bosh/registry
+wrote secret/us-west-2/proto/bosh/users/admin
+wrote secret/us-west-2/proto/bosh/users/hm
+wrote secret/us-west-2/proto/shield/keys/core
+wrote secret/handshake
+wrote secret/us-west-2/proto/bosh/nats
 
 $ safe target proto -- tree
 Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
-    ├── us-west-2/
-    │   ├── proto/
-    │   │   ├── bosh/
-    │   │   │   ├── blobstore/
-    │   │   │   │   ├── agent
-    │   │   │   │   └── director
-    │   │   │   ├── db
-    │   │   │   ├── nats
-    │   │   │   ├── users/
-    │   │   │   │   ├── admin
-    │   │   │   │   └── hm
-    │   │   │   └── vcap
-    │   │   ├── shield/
-    │   │   │   ├── daemon
-    │   │   │   ├── db
-    │   │   │   ├── keys/
-    │   │   │   │   └── core
-    │   │   │   ├── sessionsdb
-    │   │   │   └── webui
-    │   │   └── vault/
-    │   │       └── tls
-    │   └── test/
-    │       └── bosh/
-    │           ├── blobstore/
-    │           │   ├── agent
-    │           │   └── director
-    │           ├── db
-    │           ├── nats
-    │           ├── users/
-    │           │   ├── admin
-    │           │   └── hm
-    │           └── vcap
-    └── handshake
+    ├── handshake
+    ├── us-west-2
+    └── us-west-2/
+        └── proto/
+            ├── bosh/
+            │   ├── blobstore/
+            │   │   ├── agent
+            │   │   └── director
+            │   ├── db
+            │   ├── nats
+            │   ├── registry
+            │   ├── users/
+            │   │   ├── admin
+            │   │   └── hm
+            │   └── vcap
+            ├── shield/
+            │   └── keys/
+            │       └── core
+            └── vault/
+                └── tls
 ```
 
 Voila!  We now have all of our credentials in our real Vault, and
-we can kill the dev-Vault server process!
+we can kill the **vault-init** server process!
 
 ```
 $ sudo pkill vault
@@ -2737,7 +2726,7 @@ meta:
         region: us-west-2
 ```
 
-#### Setup RDS Database
+##### Setup RDS Database
 
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
@@ -2782,7 +2771,7 @@ We will manually create uaadb and ccdb for now. First, connect to your PostgreSq
 psql postgres://cfdbadmin:your_password@your_rds_instance_endpoint:5432/postgres
 ```
 
-Then run `create database uaadb` and `create database ccdb`. You also need to `create extension citext` on both of your databases. 
+Then run `create database uaadb` and `create database ccdb`. You also need to `create extension citext` on both of your databases.
 
 Now that we have RDS instance and `ccdb` and `uaadb` databases created inside it, lets refer to them in our `properties.yml` file:
 
@@ -3210,6 +3199,38 @@ check the sanity of the deployment via `genesis bosh run errand smoke_tests`. Ta
 from Vault. If you run into any trouble, make sure that your DNS is pointing properly to the
 correct ELB for this environment, and that the ELB has the correct SSL certificate for your site.
 
+##### Push An App to Beta Cloud Foundry
+
+After you successfully deploy the Beta CF, you can push an simple app to learn more about CF. In the CF world, every application and service is scoped to a space. A space is inside an org and provides users with access to a shared location for application development, deployment, and maintenance. An org is a development account that an individual or multiple collaborators can own and use. You can click [orgs, spaces, roles and permissions][orgs and spaces] to learn more  details.
+
+The first step is creating and org and an space and targeting the org and space you created by running the following commands.
+
+```
+cf create-org sw-codex
+cf target -o sw-codex
+cf create-space test
+cf target -s test
+
+```
+
+Once you are in the space, you can push an very simple app [cf-env][cf-env]  to the CF. Clone the [cf-env][cf-env]  rego on your bastion server, then go inside the `cf-env` directory, simply run `cf push` and it will start to upload, stage and run your app.
+
+Your `cf push` command may fail like this:
+
+```
+Using manifest file /home/user/cf-env/manifest.yml
+
+Updating app cf-env in org sw-codex / space test as admin...
+OK
+
+Uploading cf-env...
+FAILED
+Error processing app files: Error uploading application.
+Server error, status code: 500, error code: 10001, message: An unknown error occurred.
+
+```
+You can try to debug this yourself for a while or find the possible solution in [Debug Unknown Error When You Push Your APP to CF][DebugUnknownError].
+
 ### Production Environment
 
 Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH Director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
@@ -3240,6 +3261,9 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [troubleshooting]:   troubleshooting.md
 [use_terraform]:     aws.md#use-terraform
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
+[cf-env]:            https://github.com/cloudfoundry-community/cf-env
+[orgs and spaces]:   https://docs.cloudfoundry.org/concepts/roles.html
+[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/ 
 
 [//]: # (Images, put in /images folder)
 
