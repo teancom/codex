@@ -81,5 +81,35 @@ $ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
 
 NOTE: On macOS you need to `brew install openssl` to get OpenSSL 1.0.x.
 
+## Update TOC
+
+When I try to run `.bin/update_doc` to update the Table of Contents, I got the
+following error:
+
+```
+==> Pouring node-6.5.0.el_capitan.bottle.tar.gz
+Error: The `brew link` step did not complete successfully
+The formula built, but is not symlinked into /usr/local
+Could not symlink bin/node
+Target /usr/local/bin/node
+already exists. You may want to remove it:
+  rm '/usr/local/bin/node'
+
+To force the link and overwrite all conflicting files:
+  brew link --overwrite node
+
+To list all files that would be deleted:
+  brew link --overwrite --dry-run node
+```
+
+When you do `brew link --overwrite node`, if it fails to due to some file
+permissions, then read the output.  Some can be:
+
+  * `sudo chmod 777 /usr/local/share/systemtap/tapset/`
+  * `sudo chmod 777 /usr/local/share/doc/node/`
+
+Another good idea is to run `brew doctor` for any other advice that **brew** may
+have to make sure the system is running smoothly.
+
 [1]:            https://github.com/starkandwayne/codex/blob/master/aws.md#prepare-bastion-host
 [amazon-keys]:  https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName
