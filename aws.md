@@ -2726,7 +2726,7 @@ meta:
         region: us-west-2
 ```
 
-#### Setup RDS Database
+##### Setup RDS Database
 
 Next, lets tackle the database situation. We will need to create RDS instances for the `uaadb` and `ccdb`, but first we need to generate a password for the RDS instances:
 
@@ -3199,6 +3199,38 @@ check the sanity of the deployment via `genesis bosh run errand smoke_tests`. Ta
 from Vault. If you run into any trouble, make sure that your DNS is pointing properly to the
 correct ELB for this environment, and that the ELB has the correct SSL certificate for your site.
 
+##### Push An App to Beta Cloud Foundry
+
+After you successfully deploy the Beta CF, you can push an simple app to learn more about CF. In the CF world, every application and service is scoped to a space. A space is inside an org and provides users with access to a shared location for application development, deployment, and maintenance. An org is a development account that an individual or multiple collaborators can own and use. You can click [orgs, spaces, roles and permissions][orgs and spaces] to learn more  details.
+
+The first step is creating and org and an space and targeting the org and space you created by running the following commands.
+
+```
+cf create-org sw-codex
+cf target -o sw-codex
+cf create-space test
+cf target -s test
+
+```
+
+Once you are in the space, you can push an very simple app [cf-env][cf-env]  to the CF. Clone the [cf-env][cf-env]  rego on your bastion server, then go inside the `cf-env` directory, simply run `cf push` and it will start to upload, stage and run your app.
+
+Your `cf push` command may fail like this:
+
+```
+Using manifest file /home/user/cf-env/manifest.yml
+
+Updating app cf-env in org sw-codex / space test as admin...
+OK
+
+Uploading cf-env...
+FAILED
+Error processing app files: Error uploading application.
+Server error, status code: 500, error code: 10001, message: An unknown error occurred.
+
+```
+You can try to debug this yourself for a while or find the possible solution in [Debug Unknown Error When You Push Your APP to CF][DebugUnknownError].
+
 ### Production Environment
 
 Deploying the production environment will be much like deploying the `beta` environment above. You will need to deploy a BOSH Director, Cloud Foundry, and any services also deployed in the `beta` site. Hostnames, credentials, network information, and possibly scaling parameters will all be different, but the procedure for deploying them is the same.
@@ -3229,6 +3261,9 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [troubleshooting]:   troubleshooting.md
 [use_terraform]:     aws.md#use-terraform
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
+[cf-env]:            https://github.com/cloudfoundry-community/cf-env
+[orgs and spaces]:   https://docs.cloudfoundry.org/concepts/roles.html
+[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/ 
 
 [//]: # (Images, put in /images folder)
 
