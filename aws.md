@@ -1328,60 +1328,93 @@ we can kill the **vault-init** server process!
 $ sudo pkill vault
 ```
 
-## Shield
+## SHIELD
 
 ![Shield][bastion_4]
 
-SHIELD is our backup solution.  We use it to configure and
-schedule regular backups of data systems that are important to our
-running operation, like the BOSH database, Concourse, and Cloud
-Foundry.
+SHIELD is our backup solution.  We use it to configure and schedule regular
+backups of data systems that are important to our running operation, like the
+BOSH database, Concourse, and Cloud Foundry.
 
-### Setting up AWS S3 For Backup Archives
+### Deploy Pre-requisites
 
-To help keep things isolated, we're going to set up a brand new
-IAM user just for backup archive storage.  It's a good idea to
-name this user something like `backup` or `shield-backup` so that
-no one tries to re-purpose it later, and so that it doesn't get
-deleted. We also need to generate an access key for this user and store those credentials in the Vault:
+To help keep things isolated, we're going to do a few things to keep the
+**proto-BOSH** deploy user separate from the SHIELD user.
 
-```
+* Set up a new IAM user named **shield-backup**
+* Use the new access key and secret key for the **shield-backup** user
+* Create an S3 bucket like **codex-backups** (bucket names must be unique)
+* Configure a Custom Policy named **ShieldS3Backups**
+* Store the **shield-backup** credentials in the Vault
+
+1. On the AWS web console, access the IAM service, and click on `Users` in the
+sidebar.  Then create a new user (**shield-backup**) and select "Generate an
+access key for each user". Download the CSV for the **access key** and
+**secret key** and we'll use that soon and put it in Vault.
+
+2. Switch from the IAM service to S3 service.  Click on the blue button to
+**Create Bucket**.  Give it the name like **codex-backups**,
+ex.`juser-codex-backups`.  All defaults (the options on the create bucket
+screen) should be fine.
+
+3. Back in the IAM section.  Select Users from the left, and choose your user
+(**shield-backup**).
+
+4. This should bring up a summary of the user with things like the _User ARN_,
+_Groups_, etc.  In the bottom half of the Summary panel, you can see some tabs,
+and one of those tabs is _Permissions_.  Click on that one.
+
+5. We are going to create a custom policy for accessing the S3 bucket. Expand
+the _Inline Policies_ and then create one using the _Custom Policy_ editor. Name
+it **ShieldS3Backups** and paste the following content:
+
+  ```
+{
+"Statement": [
+  {
+    "Effect"   : "Allow",
+    "Action"   : "s3:ListAllMyBuckets",
+    "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
+  },
+  {
+    "Effect"   : "Allow",
+    "Action"   : "s3:*",
+    "Resource" : [
+      "arn:aws:s3:::your-bucket-name",
+      "arn:aws:s3:::your-bucket-name/*"
+    ]
+  }
+]
+}
+  ```
+
+  For each of the two actions there are the Resources that they belong to.  For
+  the `s3:ListAllMyBuckets` action, we need the _User ARN_ value. Go to the IAM
+  page, click on Users and choose your user and the value is there.  And then
+  replace the `Resource` value.
+
+  ```
+"Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
+  ```
+
+  ```
+"Resource" : "arn:aws:iam::693782881333:user/shield-backup"
+  ```
+
+  Finally change the `your-bucket-name` with the name you created in step 2.
+
+6. Click `Validate Policy` and apply the policy.
+
+7. Finally store the **access key** and **secret key** values in Vault.
+
+  ```
 $ safe set secret/us-west-2/proto/shield/aws access_key secret_key
 access_key [hidden]:
 access_key [confirm]:
 
 secret_key [hidden]:
 secret_key [confirm]:
-```
-
-You're also going to want to provision a dedicated S3 bucket to
-store archives in, and name it something descriptive, like
-`codex-backups`.
-
-Since the generic S3 bucket policy is a little open (and we don't
-want random people reading through our backups), we're going to
-want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
-
-
-```
-{
-  "Statement": [
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:ListAllMyBuckets",
-      "Resource" : "arn:aws:iam:xxxxxxxxxxxx:user/zzzzz"
-    },
-    {
-      "Effect"   : "Allow",
-      "Action"   : "s3:*",
-      "Resource" : [
-        "arn:aws:s3:::your-bucket-name",
-        "arn:aws:s3:::your-bucket-name/*"
-      ]
-    }
-  ]
-}
-```
+  ```
 
 ### Deploying SHIELD
 
@@ -1397,16 +1430,14 @@ Now we can set up our `us-west-2` site using the `aws` template, with a
 `proto` environment inside of it:
 
 ```
-$ genesis new site --template us-west-2 aws
+$ genesis new site --template aws us-west-2
 $ genesis new env us-west-2 proto
-$ cd us-west-2/proto
+$ cd ~/ops/shield-deployments/us-west-2/proto
 $ make manifest
-5 error(s) detected:
- - $.compilation.cloud_properties.availability_zone: What availability zone is SHIELD deployed to?
+3 error(s) detected:
  - $.meta.az: What availability zone is SHIELD deployed to?
  - $.networks.shield.subnets: Specify your shield subnet
  - $.properties.shield.daemon.ssh_private_key: Specify the SSH private key that the daemon will use to talk to the agents
- - $.resource_pools.small.cloud_properties.availability_zone: What availability zone is SHIELD deployed to?
 
 
 Failed to merge templates; bailing...
@@ -1414,10 +1445,9 @@ Makefile:22: recipe for target 'manifest' failed
 make: *** [manifest] Error 5
 ```
 
-By now, this should be old hat.  According to the [Network
-Plan][netplan], the SHIELD deployment belongs in the
-**10.4.1.32/28** network, in zone 1 (a).  Let's put that
-information into `properties.yml`:
+By now, this should be old hat.  According to the [Network Plan][netplan], the
+SHIELD deployment belongs in the **10.4.1.32/28** network, in zone 1 (a).  Let's
+put that information into `properties.yml`:
 
 ```
 $ cat properties.yml
@@ -1451,8 +1481,7 @@ networks:
           - 10.4.1.32 - 10.4.1.34
 ```
 
-(Don't forget to change your `subnet` to match your AWS VPC
-configuration.)
+(Don't forget to change your `subnet` to match your AWS VPC configuration.)
 
 Then we need to configure our `store` and a default `schedule` and `retention` policy:
 
@@ -1481,11 +1510,10 @@ properties:
       expires: "86400" # 24 hours
 ```
 
-Finally, if you recall, we already generated an SSH keypair for
-SHIELD, so that we could pre-deploy the pubic key to our
-**proto-BOSH**.  We stuck it in the Vault, at
-`secret/us-west-2/proto/shield/keys/core`, so let's get it back out for this
-deployment:
+Finally, if you recall, we already generated an SSH keypair for SHIELD, so that
+we could pre-deploy the pubic key to our **proto-BOSH**.  We stuck it in the
+Vault, at `secret/us-west-2/proto/shield/keys/core`, so let's get it back out
+for this deployment:
 
 ```
 $ cat credentials.yml
@@ -1515,12 +1543,63 @@ Director task 13
 
 ```
 
-Once that's complete, you will be able to access your SHIELD
-deployment, and start configuring your backup jobs.
+Once that's complete, you will be able to access your SHIELD deployment, and
+start configuring your backup jobs.
 
-### How to use SHIELD
+### Accessing SHIELD
 
-TODO: Add how to use SHIELD to backup and restore by using an example.
+In order to Access SHIELD we'll need to create an SSH port forward from the
+local computer through the bastion server.  That way when we try to access that
+port on our local computer it will act like we're accessing that server
+directly.
+
+The command looks like this:
+
+```
+ssh USER@BASTION_IP -L PORT:HOST_IP:HOST_PORT
+```
+
+So let's gather some of the variables.  You should already have the `USER` and
+`BASTION_IP` address from connecting to the server before.  For example `juser`
+and `52.43.51.197`.  (Replace with your user and IP though...)
+
+And we're going to connect to the `HOST_PORT` of _443_ so let's use `PORT`
+_8443_ locally.  That means we just need the `HOST_IP`.
+
+```
+ssh juser@52.43.51.197 -L 8443:10.4.1.32:443
+```
+
+Once you've connected in a new tab, it will appear as though it's a new SSH
+connection.  Leave this connection open or the tunnel will breakdown. Now you
+can open https://localhost:8443 in your browser.
+
+The default user is **shield** and the password is stored in the Vault.
+
+```
+$ safe get secret/us-west-2/proto/shield/webui
+--- # secret/us-west-2/proto/shield/webui
+password: keepitsecret
+```
+
+### Install SHIELD CLI
+
+We can install the `shield` CLI on the bastion with these commands.
+
+```
+sudo wget -O /usr/local/bin/shield \
+https://github.com/starkandwayne/shield/releases/download/v0.6.6/shield-linux-amd64
+sudo chmod 0755 /usr/local/bin/shield
+```
+
+### Configure a Backup
+
+```
+$ shield create backend proto https://10.4.1.32:443
+$ shield -k status
+```
+
+### Restore a Backup
 
 ## bolo
 
@@ -3263,7 +3342,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 [cf-env]:            https://github.com/cloudfoundry-community/cf-env
 [orgs and spaces]:   https://docs.cloudfoundry.org/concepts/roles.html
-[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/ 
+[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/
 
 [//]: # (Images, put in /images folder)
 
