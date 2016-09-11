@@ -29,6 +29,7 @@ your IaaS provider. We have guides for the following:
 
 - [AWS](aws.md)
 - [Azure](azure.md)
+- [Google](google.md)
 - [OpenStack](openstack.md)
 
 ## Offline Reading
