@@ -2051,7 +2051,27 @@ $ make deploy
 You may encounter the following error when you are deploying Beta CF.
 
 ```
-Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running instance(s). You requested at least 1.
+Error 100: VM failed to create: googleapi: Error 403: Quota 'CPUS' exceeded. Limit: 72.0, quotaExceeded
+```
+
+Google Cloud has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your [Google Cloud console][console], go to `Compute Engine`, on the left column click `Quotas`, and then click the blue button that says `Request Increase`. It takes less than 5 minutes get limits increase approved through Google.
+
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/europe-west1/staging` directory. In the following example, you scale cells in both zones to 2 and you change the resource pool `small_z1` to use the `n1-standard-2` machine type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+
+```
+jobs:
+
+- name: cell_z1
+  instances: 2
+
+- name: cell_z2
+  instances: 2
+
+resource_pools:
+
+- name: small_z1
+  cloud_properties:
+    machine_type: n1-standard-1
 ```
 
 After a long while of compiling and deploying VMs, your CF should now be up, and accessible! You can check the sanity of the deployment via `genesis bosh run errand smoke_tests`. Target it using `cf login -a https://api.system.<your CF domain>`. The admin user's password can be retrieved from Vault. If you run into any trouble, make sure that your DNS is pointing properly to the correct ELB for this environment, and that the ELB has the correct SSL certificate for your site.
@@ -2102,6 +2122,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [bastion_host]:      google.md#bastion-host
 [bolo]:              https://github.com/cloudfoundry-community/bolo-boshrelease
 [cf-env]:            https://github.com/cloudfoundry-community/cf-env
+[console]:           https://console.cloud.google.com
 [DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/
 [DRY]:               https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
 [gcloud]:            https://cloud.google.com/sdk/
