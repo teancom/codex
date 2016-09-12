@@ -925,7 +925,7 @@ resource "google_compute_http_health_check" "dev-cf" {
   unhealthy_threshold = 2
   port                = 80
   request_path        = "/info"
-  host                = "api.${google_compute_address.dev-cf.address}.xip.io"
+  host                = "api.system.${google_compute_address.dev-cf.address}.xip.io"
 }
 resource "google_compute_target_pool" "dev-cf" {
   count  = "${var.google_lb_dev_enabled}"
@@ -992,7 +992,7 @@ resource "google_compute_http_health_check" "staging-cf" {
   unhealthy_threshold = 2
   port                = 80
   request_path        = "/info"
-  host                = "api.${google_compute_address.staging-cf.address}.xip.io"
+  host                = "api.system.${google_compute_address.staging-cf.address}.xip.io"
 }
 resource "google_compute_target_pool" "staging-cf" {
   count  = "${var.google_lb_staging_enabled}"
@@ -1059,7 +1059,7 @@ resource "google_compute_http_health_check" "prod-cf" {
   unhealthy_threshold = 2
   port                = 80
   request_path        = "/info"
-  host                = "api.${google_compute_address.prod-cf.address}.xip.io"
+  host                = "api.system.${google_compute_address.prod-cf.address}.xip.io"
 }
 resource "google_compute_target_pool" "prod-cf" {
   count  = "${var.google_lb_prod_enabled}"
