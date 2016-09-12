@@ -64,7 +64,7 @@ $ gcloud iam service-accounts keys create /tmp/cf-account.key.json \
 Then make your service account's key available in an environment variable so we can use later by `terraform`:
 
 ```
-export GOOGLE_CREDENTIALS=$(cat /tmp/cf.key.json)
+export GOOGLE_CREDENTIALS=$(cat /tmp/cf-account.key.json)
 ```
 
 And finally grant the new service account editor access to your project:
