@@ -1897,6 +1897,8 @@ $ cat networking.yml
 meta:
   target_pool: cf-staging-cf # <- your staging-cf target_pool
   target_pool_ssh: cf-staging-cf-ssh # <- your staging-cf-ssh target_pool
+  cf:
+    base_domain: x.x.x.x.xip.io # <- your staging-cf target pool IP address
 
 networks:
   - name: router1
