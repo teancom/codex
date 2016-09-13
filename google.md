@@ -176,6 +176,8 @@ Now connect to the bastion server using the `gcloud` utility:
 $ gcloud compute ssh bastion --zone europe-west1-b
 ```
 
+Your ssh key pair for the bastion host will be created on your initial login request.  The private and public keys will be stored in your $HOME/.ssh directory in the files google_compute_engine and google_compute_engine.pub respectively. The public key will be needed when you do jumpbox useradd later on.
+
 ### Setup User
 
 Once on the bastion host, you'll want to use the `jumpbox` script, which has been installed automatically by the Terraform configuration. [This script installs][jumpbox] some useful utilities like `jq`, `spruce`, `safe`, and `genesis` all of which will be important when we start using the bastion host to do deployments.
