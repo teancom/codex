@@ -55,23 +55,24 @@ To help keep things isolated, we're going to set up a brand new IAM user. It's a
 Using the `gcloud` tool, let's create a new service account and key:
 
 ```
-$ gcloud iam service-accounts create cf-account \
+gc_cf_account="cf-account"
+$ gcloud iam service-accounts create ${gc_cf_account} \
   --display-name "CloudFoundry Service Account"
-$ gcloud iam service-accounts keys create /tmp/cf-account.key.json \
-  --iam-account cf-account@${projectid}.iam.gserviceaccount.com
+$ gcloud iam service-accounts keys create $HOME/cf-account.key.json \
+  --iam-account ${gc_cf_account}@${projectid}.iam.gserviceaccount.com
 ```
 
 Then make your service account's key available in an environment variable so we can use later by `terraform`:
 
 ```
-export GOOGLE_CREDENTIALS=$(cat /tmp/cf-account.key.json)
+export GOOGLE_CREDENTIALS=$(cat $HOME/cf-account.key.json)
 ```
 
 And finally grant the new service account editor access to your project:
 
 ```
 $ gcloud projects add-iam-policy-binding ${projectid} \
-  --member serviceAccount:cf-account@${projectid}.iam.gserviceaccount.com \
+  --member serviceAccount:${gc_cf_account}@${projectid}.iam.gserviceaccount.com \
   --role roles/editor
 ```
 
