@@ -1103,6 +1103,7 @@ properties:
       plugin: "s3"
       config:
         s3_host: "https://storage.googleapis.com"
+        signature_version: 2
         access_key_id: (( vault "secret/google/gcs:access_key" ))
         secret_access_key: (( vault "secret/google/gcs:secret_key" ))
         bucket: xxxxxx # <- backup's gcs bucket
@@ -1816,8 +1817,8 @@ $ make manifest
 ...
 27 error(s) detected:
  - $.meta.cf.base_domain: Enter the Cloud Foundry base domain
- - $.meta.cf.blobstore_config.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
- - $.meta.cf.blobstore_config.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
+ - $.meta.cf.blobstore_config.fog_connection.google_storage_access_key_id: What is the access key id for the blobstore GCS buckets?
+ - $.meta.cf.blobstore_config.fog_connection.google_storage_secret_access_key: What is the secret key for the blobstore GCS buckets?
  - $.meta.google.zones.z1: Define the z1 Google zone
  - $.meta.google.zones.z2: Define the z2 Google zone
  - $.meta.google.zones.z3: Define the z3 Google zone
@@ -1831,14 +1832,14 @@ $ make manifest
  - $.networks.runner1.subnets: Specify your runner1 subnet
  - $.networks.runner2.subnets: Specify your runner2 subnet
  - $.networks.runner3.subnets: Specify your runner3 subnet
- - $.properties.cc.buildpacks.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
- - $.properties.cc.buildpacks.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
- - $.properties.cc.droplets.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
- - $.properties.cc.droplets.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
- - $.properties.cc.packages.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
- - $.properties.cc.packages.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
- - $.properties.cc.resource_pool.fog_connection.aws_access_key_id: What is the access key id for the blobstore S3 buckets?
- - $.properties.cc.resource_pool.fog_connection.aws_secret_access_key: What is the secret key for the blobstore S3 buckets?
+ - $.properties.cc.buildpacks.fog_connection.google_storage_access_key_id: What is the access key id for the blobstore GCS buckets?
+ - $.properties.cc.buildpacks.fog_connection.google_storage_secret_access_key: What is the secret key for the blobstore GCS buckets?
+ - $.properties.cc.droplets.fog_connection.google_storage_access_key_id: What is the access key id for the blobstore GCS buckets?
+ - $.properties.cc.droplets.fog_connection.google_storage_secret_access_key: What is the secret key for the blobstore GCS buckets?
+ - $.properties.cc.packages.fog_connection.google_storage_access_key_id: What is the access key id for the blobstore GCS buckets?
+ - $.properties.cc.packages.fog_connection.google_storage_secret_access_key: What is the secret key for the blobstore GCS buckets?
+ - $.properties.cc.resource_pool.fog_connection.google_storage_access_key_id: What is the access key id for the blobstore GCS buckets?
+ - $.properties.cc.resource_pool.fog_connection.google_storage_secret_access_key: What is the secret key for the blobstore GCS buckets?
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
@@ -1865,8 +1866,8 @@ meta:
   cf:
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/google/gcs:access_key" ))
-        aws_secret_access_key: (( vault "secret/google/gcs:secret_key"))
+        google_storage_access_key_id: (( vault "secret/google/gcs:access_key" ))
+        google_storage_secret_access_key: (( vault "secret/google/gcs:secret_key"))
 ```
 
 Now it's time to create the Load Balancer that will be in front of the `gorouters`. Let's go back to the `terraform/google` sub-directory of this repository and add to the `google.tfvars` file the following configurations:
@@ -1958,8 +1959,8 @@ meta:
   cf:
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/google/gcs:access_key" ))
-        aws_secret_access_key: (( vault "secret/google/gcs:secret_key"))
+        google_storage_access_key_id: (( vault "secret/google/gcs:access_key" ))
+        google_storage_secret_access_key: (( vault "secret/google/gcs:secret_key"))
 
 properties:
   router:
@@ -2107,8 +2108,8 @@ meta:
   cf:
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/google/gcs:access_key" ))
-        aws_secret_access_key: (( vault "secret/google/gcs:secret_key"))
+        google_storage_access_key_id: (( vault "secret/google/gcs:access_key" ))
+        google_storage_secret_access_key: (( vault "secret/google/gcs:secret_key"))
 
 properties:
   router:
