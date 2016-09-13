@@ -157,7 +157,11 @@ server, you'll have installed each of the following in the numbered order:
 
 ### Connect to Bastion
 
-Before we can begin to install software, we need to connect to the server. At the end of the Terraform `make deploy` output the `bastion` vm name, region, zone and public IP is displayed:
+Before we can begin to install software, we need to connect to the server. At the end of the Terraform `make deploy` output the `bastion` vm name, region, zone and public IP variables are displayed.  You can also get these variables using the following command:
+
+```
+gcloud compute instances list
+```
 
 ```
 box.bastion.name = bastion
