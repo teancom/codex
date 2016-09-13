@@ -176,7 +176,7 @@ Now connect to the bastion server using the `gcloud` utility:
 $ gcloud compute ssh bastion --zone europe-west1-b
 ```
 
-Your ssh key pair for the bastion host will be created on your initial login request.  The private and public keys will be stored in your $HOME/.ssh directory in the files google_compute_engine and google_compute_engine.pub respectively. The public key will be needed when you do jumpbox useradd later on.
+Your ssh key pair for the initial bastion host login account will be created on your initial login request.  The private and public keys will be stored in your $HOME/.ssh directory in the files google_compute_engine and google_compute_engine.pub respectively. The public key will be needed when you do `jumpbox useradd` later on.
 
 ### Setup User
 
