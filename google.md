@@ -1889,6 +1889,82 @@ meta:
     base_domain: x.x.x.x.xip.io # <- your staging-cf target pool IP address
 ```
 
+We will also need TLS termination for our `gorouters`, so we then need to create a SSL/TLS certificate for our domain.
+
+Create first the CA Certificate:
+
+```
+$ mkdir -p /tmp/certs
+$ cd /tmp/certs
+$ certstrap init --common-name "CertAuth"
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/CertAuth.key
+Created out/CertAuth.crt
+Created out/CertAuth.crl
+```
+
+Then create the certificates for your domain (it will be `x.x.x.x.xip.io` where `x.x.x.x` is the IP address of your target pool):
+
+```
+$ certstrap request-cert -common-name *.<your domain> -domain *.system.<your domain>,*.apps.<your domain>,*.login.<your domain>,*.uaa.<your domain>
+
+Enter passphrase (empty for no passphrase):
+
+Enter same passphrase again:
+
+Created out/*.<your domain>.key
+Created out/*.<your domain>.csr
+```
+
+And last, sign the domain certificates with the CA certificate:
+
+```
+$ certstrap sign *.<your domain> --CA CertAuth
+Created out/*.<your domain>.crt from out/*.<your domain>.csr signed by out/CertAuth.key
+```
+
+For safety, let's store the certificates in Vault:
+
+```
+$ cd out
+$ safe write secret/europe-west1/staging/cf/tls/ca "csr@CertAuth.crl"
+$ safe write secret/europe-west1/staging/cf/tls/ca "crt@CertAuth.crt"
+$ safe write secret/europe-west1/staging/cf/tls/ca "key@CertAuth.key"
+$ safe write secret/europe-west1/staging/cf/tls/domain "crt@*.<your domain>.crt"
+$ safe write secret/europe-west1/staging/cf/tls/domain "csr@*.<your domain>.csr"
+$ safe write secret/europe-west1/staging/cf/tls/domain "key@*.<your domain>.key"
+```
+
+Then we will add those certs to the `gourouter` properties:
+
+```
+$ cat properties.yml
+---
+meta:
+  google:
+    region: europe-west1
+    zones:
+      z1: (( concat meta.google.region "-b" ))
+      z2: (( concat meta.google.region "-c" ))
+      z3: (( concat meta.google.region "-d" ))
+  skip_ssl_validation: true
+  cf:
+    blobstore_config:
+      fog_connection:
+        aws_access_key_id: (( vault "secret/google/gcs:access_key" ))
+        aws_secret_access_key: (( vault "secret/google/gcs:secret_key"))
+
+properties:
+  router:
+    enable_ssl: true
+    ssl_cert: (( vault meta.vault_prefix "/tls/domain:crt" ))
+    ssl_key: (( vault meta.vault_prefix "/tls/domain:key" ))
+    ssl_skip_validation: true
+```
+
 Now, we can consult our [Network Plan][netplan] for the subnetwork information, cross referencing with terraform output or the GCP console to get the subnetwork names:
 
 ```
@@ -2031,6 +2107,11 @@ meta:
         aws_secret_access_key: (( vault "secret/google/gcs:secret_key"))
 
 properties:
+  router:
+    enable_ssl: true
+    ssl_cert: (( vault meta.vault_prefix "/tls/domain:crt" ))
+    ssl_key: (( vault meta.vault_prefix "/tls/domain:key" ))
+    ssl_skip_validation: true
   cc:
     security_group_definitions:
     - name: load_balancer
@@ -2082,14 +2163,49 @@ After a long while of compiling and deploying VMs, your CF should now be up, and
 
 After you successfully deploy the Beta CF, you can push an simple app to learn more about CF. In the CF world, every application and service is scoped to a space. A space is inside an org and provides users with access to a shared location for application development, deployment, and maintenance. An org is a development account that an individual or multiple collaborators can own and use. You can click [orgs, spaces, roles and permissions][orgs and spaces] to learn more  details.
 
-The first step is creating and org and an space and targeting the org and space you created by running the following commands.
+The first step is logging into your Cloud Foundry environment, but first let's grab our admin password:
 
 ```
-cf create-org sw-codex
-cf target -o sw-codex
-cf create-space test
-cf target -s test
+$ safe read secret/europe-west1/staging/cf/creds/users/admin
+--- # secret/europe-west1/staging/cf/creds/users/admin
+password: GHLK5dS2B4goszGPAlRvwkriu3rUwCpSo4B7J1gsRLwgBczMTvfPheJUYUMPIk95
+```
 
+Then we will target our environment and we will log in:
+
+```
+$ cf api api.system.<your domain> --skip-ssl-validation
+Setting api endpoint to api.system.<your domain>...
+OK
+
+
+API endpoint:   https://api.system.<your domain> (API version: 2.59.0)
+$ cf login
+API endpoint: https://api.system.<your domain>
+
+Email> admin
+
+Password>
+Authenticating...
+OK
+
+Targeted org system
+
+
+
+API endpoint:   https://api.system.<your domain> (API version: 2.59.0)
+User:           admin
+Org:            system
+Space:          No space targeted, use 'cf target -s SPACE'
+```
+
+The next step is creating and org and an space and targeting the org and space you created by running the following commands.
+
+```
+$ cf create-org sw-codex
+$ cf target -o sw-codex
+$ cf create-space test
+$ cf target -s test
 ```
 
 Once you are in the space, you can push an very simple app [cf-env][cf-env] to the CF. Clone the [cf-env][cf-env] repo on your bastion server, then go inside the `cf-env` directory, simply run `cf push` and it will start to upload, stage and run your app.
