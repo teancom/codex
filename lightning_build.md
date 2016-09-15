@@ -1,12 +1,37 @@
+# Lightning Build
+
+## Pre-requisites
+
+* A configured `aws.tfvars` file that allows Terraform to quickly build and destroy
+* IAM Deploy user, with Access Key and Secret Key
+* IAM SHIELD user, with Access Key and Secret Key
+
 ## Setup Bastion
 
+LOCAL
 cd terraform/aws
+(5 min)
 make all | grep box.bastion.public | awk '{ print $3 }'
-52.88.107.17
-ssh -i ~/.ssh/cf-deploy.pem ubuntu@52.88.107.17
+
+OBTAIN IP ADDRESS, replace IP_ADDR
+
+ssh -i ~/.ssh/cf-deploy.pem ubuntu@IP_ADDR
+
+SERVER
+
 jumpbox useradd
 sudo -iu tbird
 jumpbox user
+
+NEW TAB LOCAL
+
+ssh -i ~/.ssh/cf-deploy.pem ubuntu@IP_ADDR
+
+SERVER
+
+sudo -iu tbird
+mkdir ~/.ssh
+vim ~/.ssh/authorized_keys
 
 LOCAL
 
@@ -14,8 +39,6 @@ cat ~/.ssh/id_rsa.pub | pbcopy
 
 SERVER
 
-mkdir ~/.ssh
-vim ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 
 LOCAL
@@ -23,7 +46,7 @@ LOCAL
 atom ~/.ssh/config
 
 Host bastion
-  Hostname 52.88.107.17
+  Hostname IP_ADDR
   User tbird
 
 ## vault-init
@@ -83,8 +106,8 @@ meta:
     region: us-west-2
     azs:
       z1: (( concat meta.aws.region "a" ))
-    access_key: (( vault "secret/aws:access_key" ))
-    secret_key: (( vault "secret/aws:secret_key" ))
+    access_key: (( vault "secret/us-west-2:access_key" ))
+    secret_key: (( vault "secret/us-west-2:secret_key" ))
     private_key: ~/.ssh/cf-deploy.pem
     ssh_key_name: cf-deploy
     default_sgs:
@@ -109,7 +132,7 @@ networks:
         gateway:  10.4.1.1
         dns:     [10.4.0.2]
         cloud_properties:
-          subnet: subnet-4b17523d # <-- your AWS Subnet ID
+          subnet: subnet-02e3a274 # <-- your AWS Subnet ID
           security_groups: [wide-open]
         reserved:
           - 10.4.1.2 - 10.4.1.3    # Amazon reserves these
@@ -121,11 +144,10 @@ networks:
 ### build and run deploy
 
 make manifest
+(26 mins)
 make deploy
 
-Path to existing bosh-init statefile (leave blank for new deployments):
-
-PRESS ENTER
+PRESS ENTER Path to existing bosh-init statefile (leave blank for new deployments):
 
 ### login to proto-BOSH
 
@@ -149,7 +171,9 @@ TARGETING INIT yes
 
 FQDN vault.tylerbird.com
 
-### config files
+### deployment config files
+
+cd ~/ops/vault-deployments/us-west-2/proto
 
 vim properties.yml
 
@@ -179,7 +203,7 @@ networks:
         gateway:  10.4.1.1
         dns:     [10.4.0.2]
         cloud_properties:
-          subnet: subnet-4b17523d  # <--- your AWS Subnet ID
+          subnet: subnet-02e3a274  # <--- your AWS Subnet ID
           security_groups: [wide-open]
         reserved:
           - 10.4.1.2 - 10.4.1.3    # Amazon reserves these
@@ -195,7 +219,7 @@ networks:
         gateway:  10.4.2.1
         dns:     [10.4.2.2]
         cloud_properties:
-          subnet: subnet-b788aad3  # <--- your AWS Subnet ID
+          subnet: subnet-8cd751d4  # <--- your AWS Subnet ID
           security_groups: [wide-open]
         reserved:
           - 10.4.2.2 - 10.4.2.3    # Amazon reserves these
@@ -211,7 +235,7 @@ networks:
         gateway:  10.4.3.1
         dns:     [10.4.3.2]
         cloud_properties:
-          subnet: subnet-72da602a  # <--- your AWS Subnet ID
+          subnet: subnet-c1e5cca5  # <--- your AWS Subnet ID
           security_groups: [wide-open]
         reserved:
           - 10.4.3.2 - 10.4.3.3    # Amazon reserves these
@@ -220,6 +244,10 @@ networks:
           - 10.4.3.32 - 10.4.3.254 # Allocated to other deployments
         static:
           - 10.4.3.16 - 10.4.3.18
+
+make manifest
+(10 mins)
+make deploy
 
 ### initialize global vault
 
@@ -254,3 +282,81 @@ AFTER
 safe target proto -- tree
 
 sudo pkill vault
+
+## SHIELD
+
+cd ~/ops
+genesis new deployment --template shield
+cd ~/ops/shield-deployments
+
+genesis new site --template aws us-west-2
+genesis new env us-west-2 proto
+cd ~/ops/shield-deployments/us-west-2/proto
+
+### deployment config files
+
+vim networking.yml
+
+---
+networks:
+  - name: shield
+    subnets:
+      - range:    10.4.1.0/24
+        gateway:  10.4.1.1
+        dns:     [10.4.0.2]
+        cloud_properties:
+          subnet: subnet-02e3a274  # <--- your AWS Subnet ID
+          security_groups: [wide-open]
+        reserved:
+          - 10.4.1.2 - 10.4.1.3    # Amazon reserves these
+          - 10.4.1.4 - 10.4.1.31   # Allocated to other deployments
+            # SHIELD is in 10.4.1.32/28
+          - 10.4.1.48 - 10.4.1.254 # Allocated to other deployments
+        static:
+          - 10.4.1.32 - 10.4.1.34
+
+vim properties.yml
+
+---
+meta:
+  az: us-west-2a
+
+properties:
+  shield:
+    skip_ssl_verify: true
+    store:
+      name: "default"
+      plugin: "s3"
+      config:
+        access_key_id: (( vault "secret/us-west-2/proto/shield/aws:access_key" ))
+        secret_access_key: (( vault "secret/us-west-2/proto/shield/aws:secret_key" ))
+        bucket: tbird-codex-backups # <- backup's s3 bucket
+        prefix: "/"
+    schedule:
+      name: "default"
+      when: "daily 3am"
+    retention:
+      name: "default"
+      expires: "86400" # 24 hours
+
+vim credentials.yml
+
+---
+properties:
+  shield:
+    daemon:
+      ssh_private_key: (( vault meta.vault_prefix "/keys/core:private"))
+
+make manifest
+(12 min)
+make deploy
+
+### Accessing SHIELD
+
+LOCAL NEW TAB
+
+ssh tbird@IP_ADDR -L 8443:10.4.1.32:443
+
+safe get secret/us-west-2/proto/shield/webui
+
+open https://localhost:8443/
