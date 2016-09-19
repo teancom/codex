@@ -255,8 +255,10 @@ Also, using named accounts provides auditing (via the `sudo` logs), and isolatio
 
 Let's add a user with `jumpbox useradd`:
 
+**TBD NOTE:** The sudo is required for now since it prompts for the bastion user account password for some reason. Sudo avoided getting the extra password prompt. Should investigate the ssh setup and see if we eliminate this kludge.
+
 ```
-$ jumpbox useradd
+$ sudo jumpbox useradd
 Full name: Joe User
 Username: juser
 sudo password for ubuntu:
@@ -267,8 +269,10 @@ You should run `jumpbox user` now, as juser:
 
 After you've added the user, use the `sudo -iu juser` command to change to the user. And run `jumpbox user` to install all dependent packages.
 
+**TBD NOTE:** I was surprised I needed the extra sudo to avoid that extra password prompt. __The duplicate sudo is intentional__.  Maybe the issue is with the sudo setup and not with ssh. 
+
 ```
-$ sudo -iu juser
+$ sudo sudo -iu juser
 $ jumpbox user
 ```
 
