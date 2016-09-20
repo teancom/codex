@@ -65,6 +65,7 @@ generate_toc(){
     aws.md
     azure.md
     openstack.md
+    google.md
   )
 
   for guide in "${guides[@]}"
