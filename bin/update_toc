@@ -20,12 +20,12 @@ install_dependencies() {
 }
 
 ready_to_brew() {
-  brew doctor
-  RESULT=$?
-  if [[ RESULT -eq 0 ]] ; then
-  brew update
+  if brew doctor
+  then
+    brew update
   else
     echo "Run brew doctor and complete prompts, errors were reported."
+    exit 1
   fi
 }
 
