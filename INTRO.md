@@ -14,9 +14,9 @@ Each environment gets the benefit of:
 
 ### Infrastructure Guides
 
-There are guides for each major Infrastructure (AWS, Azure, OpenStack, vSphere),
-etc. that are usable for people who are either Stark & Wayne employees, clients
-of Stark & Wayne, or interested parties.
+There are guides for each major Infrastructure (AWS, Azure, Google Compute Engine,
+OpenStack, vSphere), etc. that are usable for people who are either
+Stark & Wayne employees, clients of Stark & Wayne, or interested parties.
 
 ### Updates
 
