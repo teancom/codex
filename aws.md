@@ -2636,7 +2636,8 @@ As you might have guessed, the next step will be to see what parameters we need 
 ```
 $ cd us-west-2/staging
 $ make manifest
-72 error(s) detected:
+```
+76 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
  - $.meta.azs.z2: What availability zone should the *_z2 vms be placed in?
  - $.meta.azs.z3: What availability zone should the *_z3 vms be placed in?
@@ -2647,6 +2648,9 @@ $ make manifest
  - $.meta.cf.ccdb.host: What hostname/IP is the ccdb available at?
  - $.meta.cf.ccdb.pass: Specify the password of the ccdb user
  - $.meta.cf.ccdb.user: Specify the user to connect to the ccdb
+ - $.meta.cf.diegodb.host: What hostname/IP is the diegodb available at?
+ - $.meta.cf.diegodb.pass: Specify the password of the diegodb user
+ - $.meta.cf.diegodb.user: Specify the user to connect to the diegodb
  - $.meta.cf.uaadb.host: What hostname/IP is the uaadb available at?
  - $.meta.cf.uaadb.pass: Specify the password of the uaadb user
  - $.meta.cf.uaadb.user: Specify the user to connect to the uaadb
@@ -2654,6 +2658,7 @@ $ make manifest
  - $.meta.elbs: What elbs will be in front of the gorouters?
  - $.meta.router_security_groups: Enter the security groups which should be applied to the gorouter VMs
  - $.meta.security_groups: Enter the security groups which should be applied to CF VMs
+ - $.meta.ssh_elbs: What elbs will be in front of the ssh-proxy (access_z*) nodes?
  - $.networks.cf1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
  - $.networks.cf1.subnets.0.gateway: Enter the Gateway for this subnet
  - $.networks.cf1.subnets.0.range: Enter the CIDR address for this subnet
@@ -2709,6 +2714,11 @@ $ make manifest
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
+
+
+Failed to merge templates; bailing...
+Makefile:22: recipe for target 'manifest' failed
+make: *** [manifest] Error 5
 ```
 
 Oh boy. That's a lot. Cloud Foundry must be complicated. Looks like a lot of the fog_connection properties are all duplicates though, so lets fill out `properties.yml` with those:
@@ -2763,17 +2773,17 @@ If everything worked out you, deploy the changes:
 $ make deploy
 ```
 
-**TODO:** Create the `ccdb` and `uaadb` databases inside the RDS Instance.
+**TODO:** Create the `ccdb`,`uaadb` and `diegodb` databases inside the RDS Instance.
 
-We will manually create uaadb and ccdb for now. First, connect to your PostgreSql database using the following command.
+We will manually create uaadb, ccdb and diegodb for now. First, connect to your PostgreSql database using the following command.
 
 ```
 psql postgres://cfdbadmin:your_password@your_rds_instance_endpoint:5432/postgres
 ```
 
-Then run `create database uaadb` and `create database ccdb`. You also need to `create extension citext` on both of your databases.
+Then run `create database uaadb`, `create database ccdb` and `create database diegodb`. You also need to `create extension citext` on all of your databases.
 
-Now that we have RDS instance and `ccdb` and `uaadb` databases created inside it, lets refer to them in our `properties.yml` file:
+Now that we have RDS instance and `ccdb`, `uaadb` and `diegodb` databases created inside it, lets refer to them in our `properties.yml` file:
 
 ```
 cat properties.yml
@@ -2788,16 +2798,31 @@ meta:
         region: us-east-1
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
-      scheme: postgres
       user: "cfdbadmin"
       pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
+      scheme: postgres
+      port: 5432
     uaadb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
-      scheme: postgresql
       user: "cfdbadmin"
       pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
-```
+      scheme: postgresql
+      port: 5432
+    diegodb:
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      user: "cfdbadmin"
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
+      scheme: postgres
+      port: 5432
+properties:
+  diego:
+    bbs:
+      sql:
+        db_driver: postgres
+        db_connection_string: (( concat "postgres://" meta.cf.diegodb.user ":" meta.cf.diegodb.pass "@" meta.cf.diegodb.host ":" meta.cf.diegodb.port "/" meta.cf.diegodb.dbname ))
 
+```
+We have to configure `db_driver` and `db_connection_string` for diego since the templates we use is MySQL and we are using PostgreSQL here.
 
 Now it's time to create our Elastic Load Balancer that will be in front of the `gorouters`, but as we will need TLS termination we then need to create a SSL/TLS certificate for our domain.
 
@@ -2889,19 +2914,30 @@ meta:
         aws_secret_access_key: (( vault "secret/aws:secret_key"))
         region: us-east-1
     ccdb:
-      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
-      user: "admin"
-      pass: (( vault meta.vault_prefix "/rds:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      user: "cfdbadmin"
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
+      scheme: postgres
+      port: 5432
     uaadb:
-      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Cluster endpoint
-      user: "admin"
-      pass: (( vault meta.vault_prefix "/rds:password" ))
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      user: "cfdbadmin"
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
+      scheme: postgresql
+      port: 5432
+    diegodb:
+      host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
+      user: "cfdbadmin"
+      pass: (( vault "secret/us-west-2/staging/cf/rds:password" ))
+      scheme: postgres
+      port: 5432
 ```
 
 And let's see what's left to fill out now:
 
 ```
 $ make deploy
+51 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?
  - $.meta.azs.z2: What availability zone should the *_z2 vms be placed in?
  - $.meta.azs.z3: What availability zone should the *_z3 vms be placed in?
@@ -2909,6 +2945,7 @@ $ make deploy
  - $.meta.elbs: What elbs will be in front of the gorouters?
  - $.meta.router_security_groups: Enter the security groups which should be applied to the gorouter VMs
  - $.meta.security_groups: Enter the security groups which should be applied to CF VMs
+ - $.meta.ssh_elbs: What elbs will be in front of the ssh-proxy (access_z*) nodes?
  - $.networks.cf1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
  - $.networks.cf1.subnets.0.gateway: Enter the Gateway for this subnet
  - $.networks.cf1.subnets.0.range: Enter the CIDR address for this subnet
@@ -2934,9 +2971,29 @@ $ make deploy
  - $.networks.router2.subnets.0.range: Enter the CIDR address for this subnet
  - $.networks.router2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
  - $.networks.router2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner1.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner1.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner1.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner1.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner1.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner2.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner2.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner2.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner2.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner2.subnets.0.static: Enter the static IP ranges for this subnet
+ - $.networks.runner3.subnets.0.cloud_properties.subnet: Enter the AWS subnet ID for this subnet
+ - $.networks.runner3.subnets.0.gateway: Enter the Gateway for this subnet
+ - $.networks.runner3.subnets.0.range: Enter the CIDR address for this subnet
+ - $.networks.runner3.subnets.0.reserved: Enter the reserved IP ranges for this subnet
+ - $.networks.runner3.subnets.0.static: Enter the static IP ranges for this subnet
  - $.properties.cc.security_group_definitions.load_balancer.rules: Specify the rules for allowing access for CF apps to talk to the CF Load Balancer External IPs
  - $.properties.cc.security_group_definitions.services.rules: Specify the rules for allowing access to CF services subnets
  - $.properties.cc.security_group_definitions.user_bosh_deployments.rules: Specify the rules for additional BOSH user services that apps will need to talk to
+
+
+Failed to merge templates; bailing...
+Makefile:22: recipe for target 'manifest' failed
+make: *** [manifest] Error 5
 ```
 
 All of those parameters look like they're networking related. Time to start building out the `networking.yml` file. Since our VPC is `10.4.0.0/16`, Amazon will have provided a DNS server for us at `10.4.0.2`. We can grab the AZs and ELB names from our terraform output, and define our router + cf security groups, without consulting the Network Plan:
@@ -3140,6 +3197,23 @@ properties:
     - name: user_bosh_deployments
       rules: []
 ```
+Another thing we may want to do is scaling the VM size to save some cost when we are deploying in non-production environment, for example, we can configure the `scaling.yml` as follows:
+
+```
+resource_pools:
+
+- name: runner_z2
+  cloud_properties:
+    instance_type: t2.medium
+
+- name: runner_z1
+  cloud_properties:
+    instance_type: t2.medium
+
+- name: runner_z3
+  cloud_properties:
+    instance_type: t2.medium
+```
 
 That should be it, finally. Let's deploy!
 
@@ -3174,7 +3248,7 @@ Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running i
 
 Amaze has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
 
-If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/us-west-2/staging` directory. In the following example, you scale runners in both AZ to 2 and you change resource pool `small_z1` to use `m3.medium` type. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/us-west-2/staging` directory. In the following example, you scale runners in both AZ to 2. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
 
 ```
 jobs:
@@ -3184,12 +3258,6 @@ jobs:
 
 - name: runner_z2
   instances: 2
-
-resource_pools:
-
-- name: small_z1
-  cloud_properties:
-    instance_type: m3.medium
 
 ```
 
