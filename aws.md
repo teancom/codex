@@ -1360,7 +1360,10 @@ store archives in, and name it something descriptive, like
 
 Since the generic S3 bucket policy is a little open (and we don't
 want random people reading through our backups), we're going to
-want to create our own policy. Go to the IAM user you just created, click `permissions`, then click the blue button with `Create User Policy`, paste the following policy and modify accordingly, click `Validate Policy` and apply the policy afterwards.
+want to create our own policy. Go to the IAM user you just created, click
+`permissions`, then click the blue button with `Create User Policy`, paste the
+following policy and modify accordingly, click `Validate Policy` and apply the
+policy afterwards.
 
 
 ```
@@ -3331,7 +3334,7 @@ Lather, rinse, repeat for all additional environments (dev, prod, loadtest, what
 [verify_ssh]:        https://github.com/starkandwayne/codex/blob/master/troubleshooting.md#verify-keypair
 [cf-env]:            https://github.com/cloudfoundry-community/cf-env
 [orgs and spaces]:   https://docs.cloudfoundry.org/concepts/roles.html
-[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/ 
+[DebugUnknownError]: http://www.starkandwayne.com/blog/debug-unknown-error-when-you-push-your-app-to-cf/
 
 [//]: # (Images, put in /images folder)
 
