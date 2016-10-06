@@ -183,6 +183,17 @@ aws_region     = "us-east-1"
 network        = "10.42"
 ```
 
+Also, be advised:  Depending on the state of your AWS account, you may also need to explicitly list the AWS Availability Zones as follows:
+```
+aws_az1        = "a"
+aws_az2        = "c"
+aws_az3        = "d"
+```
+Otherwise, you may get the following error:
+```
+ * aws_subnet.dev-cf-edge-1: Error creating subnet: InvalidParameterValue: Value (us-east-1b) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: us-east-1c, us-east-1d, us-east-1e, us-east-1a.
+    status code: 400, request id:
+```
 You may change some default settings according to the real cases you are
 working on. For example, you can change `instance_type` (default is t2.small)
 in `aws.tf` to large size if the bastion would require a high workload.
@@ -357,7 +368,7 @@ The following warning may show up when you run `jumpbox user`:
       source ~/.profile
 ```
 
-In this case, please follow the `WARNING` message, otherwise you may see the following message when you run `jumpbox` command even you already installed everything when you run `jumpbox user`.
+In this case, please follow the `WARNING` message, otherwise you may see the following message when you run `jumpbox` command even if you already installed everything when you run `jumpbox user`.
 
 ```
 ruby not installed
@@ -528,6 +539,8 @@ $ safe read secret/handshake
 knock: knock
 ```
 
+**NOTE**: If you receive `API 400 Bad Request` when attempting `safe set`, you may have incorrectly copied and entered your Root Key.  Try `safe auth token` again.
+
 All set!  Now we can now build our deploy for the **proto-BOSH**.
 
 ### proto-BOSH
@@ -620,20 +633,16 @@ Setting up credentials in vault, under secret/us-west-2/proto/bosh
     └── vcap
 
 
-Created environment us-west-2/proto:
+Created environment us-west-2/:
 ~/ops/bosh-deployments/us-west-2/proto
-├── cloudfoundry.yml
 ├── credentials.yml
-├── director.yml
 ├── Makefile
-├── monitoring.yml
 ├── name.yml
 ├── networking.yml
 ├── properties.yml
-├── README
-└── scaling.yml
+└── README
 
-0 directories, 10 files
+0 directories, 6 files
 ```
 
 **NOTE** Don't forget that `--type bosh-init` flag is very important. Otherwise,
@@ -1159,7 +1168,7 @@ unseal the Vault so that you can interact with it.
 First off, we need to find the IP addresses of our Vault nodes:
 
 ```
-$ bosh vms us-west-2-vault-init
+$ bosh vms us-west-2-proto-vault
 +---------------------------------------------------+---------+-----+----------+-----------+
 | VM                                                | State   | AZ  | VM Type  | IPs       |
 +---------------------------------------------------+---------+-----+----------+-----------+
@@ -1401,7 +1410,7 @@ Now we can set up our `us-west-2` site using the `aws` template, with a
 `proto` environment inside of it:
 
 ```
-$ genesis new site --template us-west-2 aws
+$ genesis new site --template aws us-west-2
 $ genesis new env us-west-2 proto
 $ cd us-west-2/proto
 $ make manifest
@@ -1473,8 +1482,8 @@ properties:
       name: "default"
       plugin: "s3"
       config:
-        access_key_id: (( vault "secret/us-west-2/proto/shield/aws:access_key" ))
-        secret_access_key: (( vault "secret/us-west-2/proto/shield/aws:secret_key" ))
+        access_key_id: (( vault "secret/us-west-2:access_key" ))
+        secret_access_key: (( vault "secret/us-west-2:secret_key" ))
         bucket: xxxxxx # <- backup's s3 bucket
         prefix: "/"
     schedule:
@@ -1663,7 +1672,7 @@ ensuring that you get no errors (no output is a good sign).
 
 Then, you can deploy to your BOSH Director via `make deploy`.
 
-Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Genesis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
+Once you've deployed, you can validate the deployment via `bosh deployments`. You should see the bolo deployment. You can find the IP of bolo vm by running `bosh vms` for bolo deployment. In order to visit the Gnossis web interface on your `bolo/0` VM from your browser on your laptop, you need to setup port forwarding to enable it.
 
 One way of doing it is using ngrok, go to [ngrok Downloads] [ngrok-download] page and download the right version to your `bolo/0` VM, unzip it and run `./ngrok http 80`, it will output something like this:
 
@@ -1682,7 +1691,15 @@ Connections                   ttl     opn     rt1     rt5     p50     p90
 ```
 
 Copy the http or https link for forwarding and paste it into your browser, you
-will be able to visit the Genesis web interface for bolo.
+will be able to visit the Gnossis web interface for bolo.
+
+If you do not want to use ngrok, you can simply use your local built-in SSH client as follows:
+
+```
+ssh bastion -L 4040:<ip address of your bolo server>:80 -N
+```
+
+Then, go to http://127.0.0.1:4040 in your web browser.
 
 Out of the box, the Bolo installation will begin monitoring itself
 for general host health (the `linux` collector), so you should
@@ -1891,8 +1908,8 @@ networks:
 After it is deployed, you can do a quick test by hitting the HAProxy machine
 
 ```
-$ bosh vms aws-proto-concourse
-Acting as user 'admin' on deployment 'aws-proto-concourse' on 'aws-proto-bosh'
+$ bosh vms us-west-2-proto-concourse
+Acting as user 'admin' on deployment 'us-west-2-proto-concourse' on 'us-west-2-proto-bosh'
 
 Director task 43
 
@@ -2248,7 +2265,7 @@ genesis v1.5.2 (ec9c868f8e62)
 And generate our bosh-lite based alpha environment:
 
 ```
-$ cf cf-deployments
+$ cd cf-deployments
 $ genesis new site --template bosh-lite bosh-lite
 Created site bosh-lite (from template bosh-lite):
 ~/ops/cf-deployments/bosh-lite
@@ -2306,7 +2323,7 @@ $ cat properties.yml
 ---
 meta:
   cf:
-    base_domain: 10.4.1.80.xip.io
+    base_domain: 10.4.1.80.sslip.io
 ```
 
 Now we can deploy:
@@ -2346,7 +2363,36 @@ And once complete, run the smoke tests for good measure:
 
 ```
 $ genesis bosh run errand smoke_tests
-FIXME output
+Acting as user 'admin' on deployment 'bosh-lite-alpha-cf' on 'us-west-2-alpha-bosh-lite'
+
+Director task 18
+  Started preparing deployment > Preparing deployment. Done (00:00:02)
+
+  Started preparing package compilation > Finding packages to compile. Done (00:00:01)
+
+  Started creating missing vms > smoke_tests/0 (c609e4c5-29e7-4f66-81e1-b94b9139ee7d). Done (00:00:08)
+
+  Started updating job smoke_tests > smoke_tests/0 (c609e4c5-29e7-4f66-81e1-b94b9139ee7d) (canary). Done (00:00:23)
+
+  Started running errand > smoke_tests/0. Done (00:02:18)
+
+  Started fetching logs for smoke_tests/c609e4c5-29e7-4f66-81e1-b94b9139ee7d (0) > Finding and packing log files. Done (00:00:01)
+
+  Started deleting errand instances smoke_tests > smoke_tests/0 (c609e4c5-29e7-4f66-81e1-b94b9139ee7d). Done (00:00:03)
+
+Task 18 done
+
+Started         2016-10-05 14:15:16 UTC
+Finished        2016-10-05 14:18:12 UTC
+Duration        00:02:56
+
+[stdout]
+################################################################################################################
+go version go1.6.3 linux/amd64
+CONFIG=/var/vcap/jobs/smoke-tests/bin/config.json
+...
+
+Errand 'smoke_tests' completed successfully (exit code 0)
 ```
 
 We now have our alpha-environment's Cloud Foundry stood up!
@@ -2440,8 +2486,8 @@ meta:
     region: us-west-2
     azs:
       z1: (( concat meta.aws.region "a" ))
-    access_key: (( vault "secret/aws:access_key" ))
-    secret_key: (( vault "secret/aws:secret_key" ))
+    access_key: (( vault "secret/us-west-2:access_key" ))
+    secret_key: (( vault "secret/us-west-2:secret_key" ))
     private_key: ~ # not needed, since not using bosh-lite
     ssh_key_name: your-ec2-keypair-name
     default_sgs: [wide-open]
@@ -2557,7 +2603,7 @@ Enter password:
 Logged in as 'admin'
 ```
 
-Again, since our creds are already in the long-term vault, we can skip the credential migratoin that was done in the proto-bosh deployment and go straight to committing our new deployment to the repo, and pushing it upstream.
+Again, since our creds are already in the long-term vault, we can skip the credential migration that was done in the proto-bosh deployment and go straight to committing our new deployment to the repo, and pushing it upstream.
 
 Now it's time to move on to deploying our `beta` (staging) Cloud Foundry!
 
@@ -2737,8 +2783,8 @@ meta:
   cf:
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/aws:access_key" ))
-        aws_secret_access_key: (( vault "secret/aws:secret_key"))
+        aws_access_key_id: (( vault "secret/us-west-2:access_key" ))
+        aws_secret_access_key: (( vault "secret/us-west-2:secret_key" ))
         region: us-west-2
 ```
 
@@ -2799,8 +2845,8 @@ meta:
   cf:
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/aws:access_key" ))
-        aws_secret_access_key: (( vault "secret/aws:secret_key"))
+        aws_access_key_id: (( vault "secret/us-west-2:access_key" ))
+        aws_secret_access_key: (( vault "secret/us-west-2:secret_key" ))
         region: us-east-1
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
@@ -2916,8 +2962,8 @@ meta:
     base_domain: staging.<your domain> # <- Your CF domain
     blobstore_config:
       fog_connection:
-        aws_access_key_id: (( vault "secret/aws:access_key" ))
-        aws_secret_access_key: (( vault "secret/aws:secret_key"))
+        aws_access_key_id: (( vault "secret/us-west-2:access_key" ))
+        aws_secret_access_key: (( vault "secret/us-west-2:secret_key" ))
         region: us-east-1
     ccdb:
       host: "xxxxxx.rds.amazonaws.com" # <- your RDS Instance endpoint
