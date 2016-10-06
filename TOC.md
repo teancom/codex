@@ -14,7 +14,6 @@
     + [Connect to Bastion](aws.md#connect-to-bastion)
     + [Add User](aws.md#add-user)
     + [Setup User](aws.md#setup-user)
-    + [Add Authorized Key](aws.md#add-authorized-key)
     + [SSH Config](aws.md#ssh-config)
     + [Test Login](aws.md#test-login)
   * [Proto Environment](aws.md#proto-environment)

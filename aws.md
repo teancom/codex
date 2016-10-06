@@ -330,9 +330,9 @@ Let's add a user with `jumpbox useradd`:
 $ jumpbox useradd
 Full name: Joe User
 Username:  juser
-sudo password for ubuntu:
+Enter the public key for this user's .ssh/authorized_keys file:
 You should run `jumpbox user` now, as juser:
-  sudo -iu juser
+  su - juser  
   jumpbox user
 ```
 
@@ -341,27 +341,28 @@ You should run `jumpbox user` now, as juser:
 After you've added the user, **be sure you follow up and setup the user** before
 going any further.
 
-Use the `sudo -iu juser` command to change to the user.  And run `jumpbox user`
+Use the `su - juser` command to switch to the user.  And run `jumpbox user`
 to install all dependent packages.
 
 ```
-$ sudo -iu juser
+$ su - juser 
 $ jumpbox user
 ```
 
-### Add Authorized Key
+The following warning may show up when you run `jumpbox user`:
+```
+ * WARNING: You have '~/.profile' file, you might want to load it,
+    to do that add the following line to '/home/XJ/.bash_profile':
 
-While logged in as your new user, add your local machine's public key that's
-already in your key chain.  (Ex. `~/.ssh/id_rsa.pub`)
+      source ~/.profile
+```
 
-We're going to copy it to new remote users's `~/.ssh/authorized_keys` file.
+In this case, please follow the `WARNING` message, otherwise you may see the following message when you run `jumpbox` command even you already installed everything when you run `jumpbox user`.
 
 ```
-$ mkdir ~/.ssh
-$ vim ~/.ssh/authorized_keys
-  <copy in your key, save and exit>
-$ chmod 600 ~/.ssh/authorized_keys
-$ logout
+ruby not installed
+rvm not installed
+bosh not installed
 ```
 
 ### SSH Config
