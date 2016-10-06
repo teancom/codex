@@ -345,7 +345,7 @@ Use the `su - juser` command to switch to the user.  And run `jumpbox user`
 to install all dependent packages.
 
 ```
-$ su - juser 
+$ su - juser
 $ jumpbox user
 ```
 
@@ -2640,6 +2640,8 @@ As you might have guessed, the next step will be to see what parameters we need 
 ```
 $ cd us-west-2/staging
 $ make manifest
+```
+
 ```
 76 error(s) detected:
  - $.meta.azs.z1: What availability zone should the *_z1 vms be placed in?

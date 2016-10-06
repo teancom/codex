@@ -71,15 +71,14 @@ $ aws ec2 describe-key-pairs --region us-east-1 --key-name bosh|JSON.sh -b| grep
 "05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b"
 ```
 
-Once you have the SSH Key Pair fingerprint from AWS, you can then use `openssl`
-to display the fingerprint of your local `*.pem` SSH key pair file.
+Once you have the SSH Key Pair fingerprint from AWS, you can then use `openssl`to
+[verify the fingerprint](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#verify-key-pair-fingerprints)
+of your local `*.pem` SSH key pair file.
 
 ```
-$ openssl pkey -in ~/.ssh/bosh.pem -pubout -outform DER | openssl md5 -c
+$ openssl pkcs8 -in path_to_private_key -inform PEM -outform DER -topk8 -nocrypt | openssl sha1 -c
 (stdin)= 05:ad:67:04:2a:62:e3:fb:e6:0a:61:fb:13:c7:6e:1b
 ```
-
-NOTE: On macOS you need to `brew install openssl` to get OpenSSL 1.0.x.
 
 ## Update TOC
 
