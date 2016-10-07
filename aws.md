@@ -3060,6 +3060,7 @@ meta:
     z3: us-west-2c
   dns: [10.4.0.2]
   elbs: [xxxxxx-staging-cf-elb] # <- ELB name
+  ssh_elbs: [xxxxxx-staging-cf-ssh-elb] # <- SSH ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 ```
@@ -3076,6 +3077,7 @@ meta:
     z3: us-west-2c
   dns: [10.4.0.2]
   elbs: [xxxxxx-staging-cf-elb] # <- ELB name
+  ssh_elbs: [xxxxxx-staging-cf-ssh-elb] # <- SSH ELB name
   router_security_groups: [wide-open]
   security_groups: [wide-open]
 
@@ -3168,6 +3170,7 @@ meta:
     z3: us-west-2c
   dns: [10.4.0.2]
   elbs: [xxxxxx-staging-cf-elb] # <- ELB name
+  ssh_elbs: [xxxxxx-staging-cf-ssh-elb] # <- SSH ELB name
   router_security_group: [wide-open]
   security_groups: [wide-open]
 
@@ -3298,7 +3301,7 @@ You may encounter the following error when you are deploying Beta CF.
 Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running instance(s). You requested at least 1.
 ```
 
-Amaze has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
+Amazon has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
 
 If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/us-west-2/staging` directory. In the following example, you scale runners in both AZ to 2. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
 
