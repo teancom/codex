@@ -1216,6 +1216,50 @@ resource "aws_network_acl" "hardened" {
     action     = "allow"
   }
 
+  # Allow BOSH Director traffic from the Bastion Host (in the DMZ)
+  ingress {
+    rule_no    = "102"
+    protocol   = "tcp"
+    from_port  = "4222"
+    to_port    = "4222"
+    cidr_block = "${aws_instance.bastion.private_ip}/32"
+    action     = "allow"
+  }
+  ingress {
+    rule_no    = "103"
+    protocol   = "tcp"
+    from_port  = "25555"
+    to_port    = "25555"
+    cidr_block = "${aws_instance.bastion.private_ip}/32"
+    action     = "allow"
+  }
+
+  # Allow all TCP traffic from the Global Infra networks (needed for BOSH)
+  ingress {
+    rule_no    = "104"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-0.cidr_block}"
+    action     = "allow"
+  }
+  ingress {
+    rule_no    = "105"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-1.cidr_block}"
+    action     = "allow"
+  }
+  ingress {
+    rule_no    = "106"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-2.cidr_block}"
+    action     = "allow"
+  }
+
   # OTHER RULES NEEDED:
   #  - BOSH (for proto-BOSH to deploy BOSH directors)
   #  - SHIELD (for backups to/from infranet)
@@ -1301,6 +1345,32 @@ resource "aws_network_acl" "hardened" {
     from_port  = "32768"
     to_port    = "65535"
     cidr_block = "0.0.0.0/0" # FIXME: lockdown to prod / bastion
+    action     = "allow"
+  }
+
+  # Allow all TCP traffic to the Global Infra networks (needed for BOSH)
+  egress {
+    rule_no    = "103"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-0.cidr_block}"
+    action     = "allow"
+  }
+  egress {
+    rule_no    = "104"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-1.cidr_block}"
+    action     = "allow"
+  }
+  egress {
+    rule_no    = "105"
+    protocol   = "tcp"
+    from_port  = "1"
+    to_port    = "65535"
+    cidr_block = "${aws_subnet.global-infra-2.cidr_block}"
     action     = "allow"
   }
 
