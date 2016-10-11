@@ -59,16 +59,22 @@ variable "aws_route53_prod_hosted_zone_id"    { default = "" } # PROD Hosted Zon
 #
 # The username to log into the nat box is `ec2-user'
 #
+# The regions, in order, are: N Virginia, N California, 
+#   Oregon, Ireland, Frankfurt, Tokyo, Seoul, Singapore,
+#   Sydney, Mumbai, and Sao Paulo.
+
 variable "aws_nat_ami" {
   default = {
-    us-east-1      = "ami-4c9e4b24"
-    us-west-1      = "ami-1d2b2958"
-    us-west-2      = "ami-8b6912bb"
-    ap-northeast-1 = "ami-49c29e48"
-    ap-northeast-2 = "ami-0199506f"
-    ap-southeast-1 = "ami-d482da86"
-    ap-southeast-2 = "ami-a164029b"
-    eu-west-1      = "ami-5b60b02c"
+    us-east-1      = "ami-4f680658"
+    us-west-1      = "ami-68a9e408"
+    us-west-2      = "ami-8936e0e9"
+    eu-west-1      = "ami-ee6b189d"
+    eu-central-1   = "ami-c954a4a6"
+    ap-northeast-1 = "ami-a7428ac6"
+    ap-northeast-2 = "ami-9824f1f6"
+    ap-southeast-1 = "ami-4b9b4028"
+    ap-southeast-2 = "ami-ef1a2c8c"
+    ap-south-1     = "ami-cef98ca1"
     sa-east-1      = "ami-8b72db96"
   }
 }
