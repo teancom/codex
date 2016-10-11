@@ -75,7 +75,7 @@ variable "aws_nat_ami" {
     ap-southeast-1 = "ami-4b9b4028"
     ap-southeast-2 = "ami-ef1a2c8c"
     ap-south-1     = "ami-cef98ca1"
-    sa-east-1      = "ami-8b72db96"
+    sa-east-1      = "ami-4e1f8e22"
   }
 }
 
