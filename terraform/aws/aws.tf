@@ -55,7 +55,7 @@ variable "aws_route53_prod_hosted_zone_id"    { default = "" } # PROD Hosted Zon
 # These are the region-specific IDs for the Amazon-suggested
 # AMI for running a NAT instance inside of a VPC:
 #
-#    amzn-ami-vpc-nat-hvm-2014.03.2.x86_64-gp2
+#    amzn-ami-vpc-nat-hvm-2016.03.3.x86_64-ebs
 #
 # The username to log into the nat box is `ec2-user'
 #
@@ -64,6 +64,36 @@ variable "aws_route53_prod_hosted_zone_id"    { default = "" } # PROD Hosted Zon
 #   Sydney, Mumbai, and Sao Paulo.
 
 variable "aws_nat_ami" {
+  default = {
+    us-east-1      = "ami-4868ab25"
+    us-west-1      = "ami-004b0f60"
+    us-west-2      = "ami-a275b1c2"
+    eu-west-1      = "ami-a8dd45db"
+    eu-central-1   = "ami-5825cd37"
+    ap-northeast-1 = "ami-2443b745"
+    ap-northeast-2 = "ami-d14388bf"
+    ap-southeast-1 = "ami-a79b49c4"
+    ap-southeast-2 = "ami-53371f30"
+    ap-south-1     = "ami-e2b9d38d"
+    sa-east-1      = "ami-9336bcff"
+  }
+}
+
+#
+# Generic Ubuntu AMI
+#
+# These are the region-specific IDs for an
+# HVM-compatible Ubuntu image:
+#
+#    ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20160830
+#
+# The username to log into the bastion is `ubuntu'
+#
+# The regions, in order, are: N Virginia, N California,
+#   Oregon, Ireland, Frankfurt, Tokyo, Seoul, Singapore,
+#   Sydney, Mumbai, and Sao Paulo.
+
+variable "aws_ubuntu_ami" {
   default = {
     us-east-1      = "ami-4f680658"
     us-west-1      = "ami-68a9e408"
@@ -76,32 +106,6 @@ variable "aws_nat_ami" {
     ap-southeast-2 = "ami-ef1a2c8c"
     ap-south-1     = "ami-cef98ca1"
     sa-east-1      = "ami-4e1f8e22"
-  }
-}
-
-#
-# Generic Ubuntu AMI
-#
-# These are the region-specific IDs for an
-# HVM-compatible Ubuntu image:
-#
-#    ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20160610
-#
-# (Note: this AMI is missing from the Seoul [ap-northeast-2] region)
-#
-# The username to log into the bastion is `ubuntu'
-#
-variable "aws_ubuntu_ami" {
-  default = {
-    us-east-1      = "ami-f652979b"
-    us-west-1      = "ami-08490c68"
-    us-west-2      = "ami-d06a90b0"
-    ap-northeast-1 = "ami-b601ead7"
-    #ap-northeast-2 = "" # MISSING
-    ap-southeast-1 = "ami-e7a67584"
-    ap-southeast-2 = "ami-61e3ca02"
-    eu-west-1      = "ami-0ae77879"
-    sa-east-1      = "ami-09991365"
   }
 }
 
