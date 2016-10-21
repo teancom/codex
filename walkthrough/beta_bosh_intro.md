@@ -1,31 +1,31 @@
 ### First Beta Environment
 
-Now that our `alpha` environment has been deployed, we can deploy our first beta environment to (( insert_property service.short_name )). To do this, we will first deploy a BOSH Director for the environment using the `bosh-deployments` repo we generated back when we built our [proto-BOSH](#proto-bosh), and then deploy Cloud Foundry on top of it.
+Now that our `alpha` environment has been deployed, we can deploy our first beta environment to (( insert_parameter service.short_name )). To do this, we will first deploy a BOSH Director for the environment using the `bosh-deployments` repo we generated back when we built our [proto-BOSH](#proto-bosh), and then deploy Cloud Foundry on top of it.
 
 #### BOSH
 ```
 $ cd ~/ops/bosh-deployments
 $ bosh target proto-bosh
 $ ls
-(( insert_property site.name ))  bin  global  LICENSE  README.md
+(( insert_parameter site.name ))  bin  global  LICENSE  README.md
 ```
 
-We already have the `(( insert_property site.name ))` site created, so now we will just need to create our new environment, and deploy it. Different names (sandbox or staging) for Beta have been used for different customers, here we call it staging.
+We already have the `(( insert_parameter site.name ))` site created, so now we will just need to create our new environment, and deploy it. Different names (sandbox or staging) for Beta have been used for different customers, here we call it staging.
 
 
 ```
 $ safe target proto
 Now targeting proto at http://10.10.10.6:8200
-$ genesis new env (( insert_property site.name )) staging
+$ genesis new env (( insert_parameter site.name )) staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
 Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
  proto	http://10.10.10.6:8200
 
 Use this Vault for storing deployment credentials?  [yes or no] yes
-Setting up credentials in vault, under secret/(( insert_property site.name ))/staging/bosh
+Setting up credentials in vault, under secret/(( insert_parameter site.name ))/staging/bosh
 .
-└── secret/(( insert_property site.name ))/staging/bosh
+└── secret/(( insert_parameter site.name ))/staging/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -37,8 +37,8 @@ Setting up credentials in vault, under secret/(( insert_property site.name ))/st
     └── vcap
 
 
-Created environment (( insert_property site.name ))/staging:
-~/ops/bosh-deployments/(( insert_property site.name ))/staging
+Created environment (( insert_parameter site.name ))/staging:
+~/ops/bosh-deployments/(( insert_parameter site.name ))/staging
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml

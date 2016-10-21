@@ -1,6 +1,6 @@
 ## Overview
 
-Welcome to the Stark & Wayne guide to deploying Cloud Foundry on (( insert_property service.long_name )).
+Welcome to the Stark & Wayne guide to deploying Cloud Foundry on (( insert_parameter service.long_name )).
   This guide provides the steps to create authentication credentials,
 generate the underlying cloud infrastructure, then use Terraform to prepare a bastion
 host.

@@ -16,14 +16,14 @@ No existing genesis-created bosh-init statefile detected. Please
 help genesis find it.
 Path to existing bosh-init statefile (leave blank for new
 deployments):
-Deployment manifest: '~/ops/bosh-deployments/(( insert_property site.name ))/proto/manifests/.deploy.yml'
-Deployment state: '~/ops/bosh-deployments/(( insert_property site.name ))/proto/manifests/.deploy-state.json'
+Deployment manifest: '~/ops/bosh-deployments/(( insert_parameter site.name ))/proto/manifests/.deploy.yml'
+Deployment state: '~/ops/bosh-deployments/(( insert_parameter site.name ))/proto/manifests/.deploy-state.json'
 
 Started validating
   Downloading release 'bosh'... Finished (00:00:09)
   Validating release 'bosh'... Finished (00:00:03)
-  Downloading release 'bosh-(( insert_property cpi_name ))-cpi'... Finished (00:00:02)
-  Validating release 'bosh-(( insert_property cpi_name ))-cpi'... Finished (00:00:00)
+  Downloading release 'bosh-(( insert_parameter cpi_name ))-cpi'... Finished (00:00:02)
+  Validating release 'bosh-(( insert_parameter cpi_name ))-cpi'... Finished (00:00:00)
   Downloading release 'shield'... Finished (00:00:10)
   Validating release 'shield'... Finished (00:00:02)
   Validating cpi release... Finished (00:00:00)
@@ -46,8 +46,8 @@ newly-deployed Director.  First you're going to need to get the
 password out of our **vault-init**.
 
 ```
-$ safe get secret/(( insert_property site.name ))/proto/bosh/users/admin
---- # secret/(( insert_property site.name ))/proto/bosh/users/admin
+$ safe get secret/(( insert_parameter site.name ))/proto/bosh/users/admin
+--- # secret/(( insert_parameter site.name ))/proto/bosh/users/admin
 password: super-secret
 ```
 
@@ -55,7 +55,7 @@ Then, run target the director:
 
 ```
 $ bosh target https://10.4.1.4:25555 proto-bosh
-Target set to `(( insert_property site.name ))-proto-bosh'
+Target set to `(( insert_parameter site.name ))-proto-bosh'
 Your username: admin
 Enter password:
 Logged in as `admin'
@@ -65,12 +65,12 @@ Config
              ~/.bosh_config
 
 Director
-  Name       (( insert_property site.name ))-proto-bosh
+  Name       (( insert_parameter site.name ))-proto-bosh
   URL        https://10.4.1.4:25555
   Version    1.3232.2.0 (00000000)
   User       admin
   UUID       a43bfe93-d916-4164-9f51-c411ee2110b2
-  CPI        (( insert_property cpi_name ))_cpi
+  CPI        (( insert_parameter cpi_name ))_cpi
   dns        disabled
   compiled_package_cache disabled
   snapshots  disabled

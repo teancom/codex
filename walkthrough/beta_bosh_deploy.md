@@ -3,16 +3,16 @@ Now that that's handled, let's deploy for real:
 ```
 $ make deploy
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Acting as user 'admin' on '(( insert_property template_name ))-proto-bosh-microboshen-(( insert_property template_name ))'
+Acting as user 'admin' on '(( insert_parameter template_name ))-proto-bosh-microboshen-(( insert_parameter template_name ))'
 Checking whether release bosh/256.2 already exists...YES
-Acting as user 'admin' on '(( insert_property template_name ))-proto-bosh-microboshen-(( insert_property template_name ))'
-Checking whether release bosh-(( insert_property template_name ))-cpi/53 already exists...YES
-Acting as user 'admin' on '(( insert_property template_name ))-proto-bosh-microboshen-(( insert_property template_name ))'
+Acting as user 'admin' on '(( insert_parameter template_name ))-proto-bosh-microboshen-(( insert_parameter template_name ))'
+Checking whether release bosh-(( insert_parameter template_name ))-cpi/53 already exists...YES
+Acting as user 'admin' on '(( insert_parameter template_name ))-proto-bosh-microboshen-(( insert_parameter template_name ))'
 Checking whether release shield/6.2.1 already exists...YES
-Acting as user 'admin' on '(( insert_property template_name ))-proto-bosh-microboshen-(( insert_property template_name ))'
+Acting as user 'admin' on '(( insert_parameter template_name ))-proto-bosh-microboshen-(( insert_parameter template_name ))'
 Checking if stemcell already exists...
 Yes
-Acting as user 'admin' on deployment '(( insert_property site.name ))-staging-bosh' on '(( insert_property template_name ))-proto-bosh-microboshen-(( insert_property template_name ))'
+Acting as user 'admin' on deployment '(( insert_parameter site.name ))-staging-bosh' on '(( insert_parameter template_name ))-proto-bosh-microboshen-(( insert_parameter template_name ))'
 Getting deployment properties from director...
 
 Detecting deployment changes
@@ -30,9 +30,9 @@ resource_pools:
   name: bosh
   network: default
   stemcell:
-    name: (( insert_property stemcell.name ))
+    name: (( insert_parameter stemcell.name ))
     sha1: 971e869bd825eb0a7bee36a02fe2f61e930aaf29
-    url: https://bosh.io/d/stemcells/(( insert_property stemcell.name ))?v=3232.6
+    url: https://bosh.io/d/stemcells/(( insert_parameter stemcell.name ))?v=3232.6
 ...
 Deploying
 ---------
@@ -49,7 +49,7 @@ Started		2016-07-08 17:23:47 UTC
 Finished	2016-07-08 17:34:46 UTC
 Duration	00:10:59
 
-Deployed '(( insert_property site.name ))-staging-bosh' to '(( insert_property site.name ))-proto-bosh'
+Deployed '(( insert_parameter site.name ))-staging-bosh' to '(( insert_parameter site.name ))-proto-bosh'
 ```
 
 This will take a little less time than **proto-BOSH** did (some packages were already compiled), and the next time you deploy, it go by much quicker, as all the packages should have been compiled by now (unless upgrading BOSH or the stemcell).
@@ -57,9 +57,9 @@ This will take a little less time than **proto-BOSH** did (some packages were al
 Once the deployment finishes, target the new BOSH Director to verify it works:
 
 ```
-$ safe get secret/(( insert_property site.name ))/staging/bosh/users/admin # grab the admin user's password for bosh
-$ bosh target https://10.4.32.4:25555 (( insert_property site.name ))-staging
-Target set to '(( insert_property site.name ))-staging-bosh'
+$ safe get secret/(( insert_parameter site.name ))/staging/bosh/users/admin # grab the admin user's password for bosh
+$ bosh target https://10.4.32.4:25555 (( insert_parameter site.name ))-staging
+Target set to '(( insert_parameter site.name ))-staging-bosh'
 Your username: admin
 Enter password:
 Logged in as 'admin'

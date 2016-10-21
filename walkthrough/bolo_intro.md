@@ -26,14 +26,14 @@ Next, we'll create a site for your datacenter or VPC.  The bolo
 template deployment offers some site templates to make getting
 things stood up quick and easy, including:
 
-- `(( insert_property template_name ))` for Amazon Web Services VPC deployments
+- `(( insert_parameter template_name ))` for Amazon Web Services VPC deployments
 - `vsphere` for VMWare ESXi virtualization clusters
 - `bosh-lite` for deploying and testing locally
 
 ```
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-Created site (( insert_property site.name )) (from template (( insert_property template_name ))):
-~/ops/bolo-deployments/(( insert_property site.name ))
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+Created site (( insert_parameter site.name )) (from template (( insert_parameter template_name ))):
+~/ops/bolo-deployments/(( insert_parameter site.name ))
 ├── README
 └── site
     ├── disk-pools.yml
@@ -53,10 +53,10 @@ Created site (( insert_property site.name )) (from template (( insert_property t
 Now, we can create our environment.
 
 ```
-$ cd ~/ops/bolo-deployments/(( insert_property site.name ))
-$ genesis new env (( insert_property site.name )) proto
-Created environment (( insert_property site.name ))/proto:
-~/ops/bolo-deployments/(( insert_property site.name ))/proto
+$ cd ~/ops/bolo-deployments/(( insert_parameter site.name ))
+$ genesis new env (( insert_parameter site.name )) proto
+Created environment (( insert_parameter site.name ))/proto:
+~/ops/bolo-deployments/(( insert_parameter site.name ))/proto
 ├── Makefile
 ├── README
 ├── cloudfoundry.yml

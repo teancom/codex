@@ -18,12 +18,12 @@ From the `~/ops` folder let's generate a new `concourse` deployment, using the `
 $ genesis new deployment --template concourse
 ```
 
-Inside the `global` deployment level goes the site level definition.  For this concourse setup we'll use an `(( insert_property template_name ))` template for an `(( insert_property site.name ))` site.
+Inside the `global` deployment level goes the site level definition.  For this concourse setup we'll use an `(( insert_parameter template_name ))` template for an `(( insert_parameter site.name ))` site.
 
 ```
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-Created site (( insert_property site.name )) (from template (( insert_property template_name ))):
-~/ops/concourse-deployments/(( insert_property site.name ))
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+Created site (( insert_parameter site.name )) (from template (( insert_parameter template_name ))):
+~/ops/concourse-deployments/(( insert_parameter site.name ))
 ├── README
 └── site
     ├── disk-pools.yml
@@ -44,7 +44,7 @@ Finally now, because our vault is setup and targeted correctly we can generate o
 
 ```
 $ cd ~/ops/concourse-deployments
-$ genesis new env (( insert_property site.name )) proto
+$ genesis new env (( insert_parameter site.name )) proto
 Running env setup hook: ~/ops/concourse-deployments/.env_hooks/00_confirm_vault
 
 (*) proto   https://10.4.1.16:8200
@@ -53,8 +53,8 @@ Running env setup hook: ~/ops/concourse-deployments/.env_hooks/00_confirm_vault
 Use this Vault for storing deployment credentials?  [yes or no] yes
 Running env setup hook: ~/ops/concourse-deployments/.env_hooks/gen_creds
 Generating credentials for Concource CI
-Created environment (( insert_property template_name ))/proto:
-~/ops/concourse-deployments/(( insert_property site.name ))/proto
+Created environment (( insert_parameter template_name ))/proto:
+~/ops/concourse-deployments/(( insert_parameter site.name ))/proto
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml

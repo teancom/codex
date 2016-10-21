@@ -37,13 +37,13 @@ When generating a new site we'll use this command format:
 genesis new site --template <name> <site_name>
 ```
 
-The template `<name>` will be `(( insert_property template_name ))` because that's our IaaS we're working with and
-we recommend the `<site_name>` default to the (( insert_property site.description )), ex. `(( insert_property site.name ))`.
+The template `<name>` will be `(( insert_parameter template_name ))` because that's our IaaS we're working with and
+we recommend the `<site_name>` default to the (( insert_parameter site.description )), ex. `(( insert_parameter site.name ))`.
 
 ```
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-Created site (( insert_property site.name )) (from template (( insert_property template_name ))):
-~/ops/bosh-deployments/(( insert_property template_name ))
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+Created site (( insert_parameter site.name )) (from template (( insert_parameter template_name ))):
+~/ops/bosh-deployments/(( insert_parameter template_name ))
 ├── README
 └── site
     ├── README
@@ -64,19 +64,19 @@ Created site (( insert_property site.name )) (from template (( insert_property t
 ```
 
 Finally, let's create our new environment, and name it `proto`
-(that's `(( insert_property site.name ))/proto`, formally speaking).
+(that's `(( insert_parameter site.name ))/proto`, formally speaking).
 
 ```
-$ genesis new env --type bosh-init (( insert_property site.name )) proto
+$ genesis new env --type bosh-init (( insert_parameter site.name )) proto
 Running env setup hook: ~/ops/bosh-deployments/.env_hooks/setup
 
  init  http://127.0.0.1:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]
 yes
-Setting up credentials in vault, under secret/(( insert_property site.name ))/proto/bosh
+Setting up credentials in vault, under secret/(( insert_parameter site.name ))/proto/bosh
 .
-└── secret/(( insert_property site.name ))/proto/bosh
+└── secret/(( insert_parameter site.name ))/proto/bosh
     ├── blobstore/
     │   ├── agent
     │   └── director
@@ -88,8 +88,8 @@ Setting up credentials in vault, under secret/(( insert_property site.name ))/pr
     └── vcap
 
 
-Created environment (( insert_property site.name ))/:
-~/ops/bosh-deployments/(( insert_property site.name ))/proto
+Created environment (( insert_parameter site.name ))/:
+~/ops/bosh-deployments/(( insert_parameter site.name ))/proto
 ├── credentials.yml
 ├── Makefile
 ├── name.yml
@@ -104,5 +104,5 @@ Created environment (( insert_property site.name ))/:
 you'll run into problems with your deployment.
 
 The template helpfully generated all new credentials for us and stored them in
-our **vault-init**, under the `secret/(( insert_property site.name ))/proto/bosh` subtree.  Later, we'll
+our **vault-init**, under the `secret/(( insert_parameter site.name ))/proto/bosh` subtree.  Later, we'll
 migrate this subtree over to our real Vault, once it is up and spinning.

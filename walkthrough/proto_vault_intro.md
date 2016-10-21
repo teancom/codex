@@ -19,12 +19,12 @@ monitors each of the child environments that will deployed later by the
 **proto-BOSH** Director.
 
 As before (and as will become almost second-nature soon), let's
-create our `(( insert_property site.name ))` site using the `(( insert_property template_name ))` template, and then create
+create our `(( insert_parameter site.name ))` site using the `(( insert_parameter template_name ))` template, and then create
 the `ops` environment inside of that site.
 
 ```
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-$ genesis new env (( insert_property site.name )) proto
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+$ genesis new env (( insert_parameter site.name )) proto
 ```
 
 Answer yes twice and then enter a name for your Vault instance when prompted for a FQDN.

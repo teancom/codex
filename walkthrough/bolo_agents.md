@@ -18,7 +18,7 @@ To add the release:
 ```
 $ cd ~/ops/shield-deployments
 $ genesis add release bolo latest
-$ cd ~/ops/shield-deployments/(( insert_property site.name ))/proto
+$ cd ~/ops/shield-deployments/(( insert_parameter site.name ))/proto
 $ genesis use release bolo
 ```
 

@@ -13,12 +13,12 @@ Also, make sure that you're targeting the right Vault, for good measure:
 $ safe target proto
 ```
 
-We will now create an `(( insert_property site.name ))` site for CF:
+We will now create an `(( insert_parameter site.name ))` site for CF:
 
 ```
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-Created site (( insert_property site.name )) (from template (( insert_property template_name ))):
-~/ops/cf-deployments/(( insert_property site.name ))
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+Created site (( insert_parameter site.name )) (from template (( insert_parameter template_name ))):
+~/ops/cf-deployments/(( insert_parameter site.name ))
 ├── README
 └── site
     ├── disk-pools.yml
@@ -39,7 +39,7 @@ Created site (( insert_property site.name )) (from template (( insert_property t
 And the `staging` environment inside it:
 
 ```
-$ genesis new env (( insert_property site.name )) staging
+$ genesis new env (( insert_parameter site.name )) staging
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
 Running env setup hook: ~/ops/cf-deployments/.env_hooks/00_confirm_vault
 
@@ -53,8 +53,8 @@ Running env setup hook: ~/ops/cf-deployments/.env_hooks/setup_cf_secrets
 Creating JWT Signing Key
 Creating app_ssh host key fingerprint
 Generating secrets
-Created environment (( insert_property site.name ))/staging:
-~/ops/cf-deployments/(( insert_property site.name ))/staging
+Created environment (( insert_parameter site.name ))/staging:
+~/ops/cf-deployments/(( insert_parameter site.name ))/staging
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml

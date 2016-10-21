@@ -8,7 +8,7 @@ And then let's give the deploy a whirl:
 
 ```
 $ make deploy
-Acting as user 'admin' on '(( insert_property site.name ))-proto-bosh'
+Acting as user 'admin' on '(( insert_parameter site.name ))-proto-bosh'
 Checking whether release consul/20 already exists...NO
 Using remote release `https://bosh.io/d/github.com/cloudfoundry-community/consul-boshrelease?v=20'
 

@@ -12,8 +12,8 @@ properties:
       name: "default"
       plugin: "s3"
       config:
-        access_key_id: (( vault "secret/(( insert_property site.name )):access_key" ))
-        secret_access_key: (( vault "secret/(( insert_property site.name )):secret_key" ))
+        access_key_id: (( vault "secret/(( insert_parameter site.name )):access_key" ))
+        secret_access_key: (( vault "secret/(( insert_parameter site.name )):secret_key" ))
         bucket: xxxxxx # <- backup's s3 bucket
         prefix: "/"
     schedule:
@@ -27,7 +27,7 @@ properties:
 Finally, if you recall, we already generated an SSH keypair for
 SHIELD, so that we could pre-deploy the public key to our
 **proto-BOSH**.  We stuck it in the Vault, at
-`secret/(( insert_property site.name ))/proto/shield/keys/core`, so let's get it back out for this
+`secret/(( insert_parameter site.name ))/proto/shield/keys/core`, so let's get it back out for this
 deployment:
 
 ```
@@ -49,7 +49,7 @@ Time to deploy!
 
 ```
 $ make deploy
-Acting as user 'admin' on '(( insert_property site.name ))-proto-bosh'
+Acting as user 'admin' on '(( insert_parameter site.name ))-proto-bosh'
 Checking whether release shield/6.3.0 already exists...NO
 Using remote release `https://bosh.io/d/github.com/starkandwayne/shield-boshrelease?v=6.3.0'
 

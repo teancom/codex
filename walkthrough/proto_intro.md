@@ -11,8 +11,8 @@ There are three layers to `genesis` templates.
 ### Site Name
 
 Sometimes the site level name can be a bit tricky because each IaaS divides things
-differently.  With (( insert_property service.short_name )) we suggest a default of the (( insert_property site.description )) you're using, for
-example: `(( insert_property site.name ))`.
+differently.  With (( insert_parameter service.short_name )) we suggest a default of the (( insert_parameter site.description )) you're using, for
+example: `(( insert_parameter site.name ))`.
 
 ### Environment Name
 

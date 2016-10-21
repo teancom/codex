@@ -2,7 +2,7 @@
 
 #### BOSH-Lite
 
-Since our `alpha` site will be a bosh lite running on (( insert_property service.short_name )), we will need to deploy that to our [global infrastructure network][netplan].
+Since our `alpha` site will be a bosh lite running on (( insert_parameter service.short_name )), we will need to deploy that to our [global infrastructure network][netplan].
 
 First, lets make sure we're in the right place, targeting the right Vault:
 
@@ -35,9 +35,9 @@ Next lets create our site and environment:
 
 ```
 $ cd bosh-lite-deployments
-$ genesis new site --template (( insert_property template_name )) (( insert_property site.name ))
-Created site (( insert_property site.name )) (from template (( insert_property template_name ))):
-~/ops/bosh-lite-deployments/(( insert_property site.name ))
+$ genesis new site --template (( insert_parameter template_name )) (( insert_parameter site.name ))
+Created site (( insert_parameter site.name )) (from template (( insert_parameter template_name ))):
+~/ops/bosh-lite-deployments/(( insert_parameter site.name ))
 ├── README
 └── site
     ├── disk-pools.yml
@@ -54,15 +54,15 @@ Created site (( insert_property site.name )) (from template (( insert_property t
 
 2 directories, 11 files
 
-$ genesis new env (( insert_property site.name )) alpha
+$ genesis new env (( insert_parameter site.name )) alpha
 Running env setup hook: ~/ops/bosh-lite-deployments/.env_hooks/setup
 
 (*) proto	https://10.4.1.16:8200
 
 Use this Vault for storing deployment credentials?  [yes or no]yes
-Setting up credentials in vault, under secret/(( insert_property site.name ))/alpha/bosh-lite
+Setting up credentials in vault, under secret/(( insert_parameter site.name ))/alpha/bosh-lite
 .
-└── secret/(( insert_property site.name ))/alpha/bosh-lite
+└── secret/(( insert_parameter site.name ))/alpha/bosh-lite
     ├── blobstore/
 
 
@@ -78,8 +78,8 @@ Setting up credentials in vault, under secret/(( insert_property site.name ))/al
 
 
 
-Created environment (( insert_property site.name ))/alpha:
-~/ops/bosh-lite-deployments/(( insert_property site.name ))/alpha
+Created environment (( insert_parameter site.name ))/alpha:
+~/ops/bosh-lite-deployments/(( insert_parameter site.name ))/alpha
 ├── cloudfoundry.yml
 ├── credentials.yml
 ├── director.yml

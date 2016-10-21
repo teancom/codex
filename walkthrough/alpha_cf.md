@@ -10,7 +10,7 @@ $ safe target proto
 (*) proto	https://10.4.1.16:8200
 
 $ bosh target alpha
-Target set to `(( insert_property site.name ))-alpha-bosh-lite'
+Target set to `(( insert_parameter site.name ))-alpha-bosh-lite'
 ```
 
 Now we'll create our deployment repo for cloudfoundry:
@@ -107,7 +107,7 @@ $ make deploy
   checking https://genesis.starkandwayne.com for details on release cf/237
   checking https://genesis.starkandwayne.com for details on release toolbelt/3.2.10
   checking https://genesis.starkandwayne.com for details on release postgres/1.0.3
-Acting as user 'admin' on '(( insert_property site.name ))-try-anything-bosh-lite'
+Acting as user 'admin' on '(( insert_parameter site.name ))-try-anything-bosh-lite'
 Checking whether release cf/237 already exists...NO
 Using remote release `https://bosh.io/d/github.com/cloudfoundry/cf-release?v=237'
 
@@ -127,14 +127,14 @@ Started		2016-07-15 14:47:45 UTC
 Finished	2016-07-15 14:51:28 UTC
 Duration	00:03:43
 
-Deployed `bosh-lite-alpha-cf' to `(( insert_property site.name ))-try-anything-bosh-lite'
+Deployed `bosh-lite-alpha-cf' to `(( insert_parameter site.name ))-try-anything-bosh-lite'
 ```
 
 And once complete, run the smoke tests for good measure:
 
 ```
 $ genesis bosh run errand smoke_tests
-Acting as user 'admin' on deployment 'bosh-lite-alpha-cf' on '(( insert_property site.name ))-alpha-bosh-lite'
+Acting as user 'admin' on deployment 'bosh-lite-alpha-cf' on '(( insert_parameter site.name ))-alpha-bosh-lite'
 
 Director task 18
   Started preparing deployment > Preparing deployment. Done (00:00:02)

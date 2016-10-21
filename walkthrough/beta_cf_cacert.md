@@ -39,10 +39,10 @@ For safety, let's store the certificates in Vault:
 
 ```
 $ cd out
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/ca "csr@CertAuth.crl"
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/ca "crt@CertAuth.crt"
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/ca "key@CertAuth.key"
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
-$ safe write secret/(( insert_property site.name ))/staging/cf/tls/domain "key@*.staging.<your domain>.key"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/ca "csr@CertAuth.crl"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/ca "crt@CertAuth.crt"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/ca "key@CertAuth.key"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/domain "crt@*.staging.<your domain>.crt"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/domain "csr@*.staging.<your domain>.csr"
+$ safe write secret/(( insert_parameter site.name ))/staging/cf/tls/domain "key@*.staging.<your domain>.key"
 ```

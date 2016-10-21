@@ -3,7 +3,7 @@ That should be it, finally. Let's deploy!
 ```
 $ make deploy
 RSA 1024 bit CA certificates are loaded due to old openssl compatibility
-Acting as user 'admin' on '(( insert_property site.name ))-staging-bosh'
+Acting as user 'admin' on '(( insert_parameter site.name ))-staging-bosh'
 Checking whether release cf/237 already exists...NO
 Using remote release 'https://bosh.io/d/github.com/cloudfoundry/cf-release?v=237'
 
@@ -19,11 +19,11 @@ Started		2016-07-08 17:23:47 UTC
 Finished	2016-07-08 17:34:46 UTC
 Duration	00:10:59
 
-Deployed '(( insert_property site.name ))-staging-cf' to '(( insert_property site.name ))-staging-bosh'
+Deployed '(( insert_parameter site.name ))-staging-cf' to '(( insert_parameter site.name ))-staging-bosh'
 
 ```
 
-If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/(( insert_property site.name ))/staging` directory. In the following example, you scale runners in both AZ to 2. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
+If you want to scale your deployment in the current environment (here it is staging), you can modify `scaling.yml` in your `cf-deployments/(( insert_parameter site.name ))/staging` directory. In the following example, you scale runners in both AZ to 2. Afterwards you can run `make manifest` and `make deploy`, please always remember to verify your changes in the manifest before you type `yes` to deploy making sure the changes are what you want.
 
 ```
 jobs:

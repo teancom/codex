@@ -8,7 +8,7 @@ unseal the Vault so that you can interact with it.
 First off, we need to find the IP addresses of our Vault nodes:
 
 ```
-$ bosh vms (( insert_property site.name ))-proto-vault
+$ bosh vms (( insert_parameter site.name ))-proto-vault
 +---------------------------------------------------+---------+-----+----------+-----------+
 | VM                                                | State   | AZ  | VM Type  | IPs       |
 +---------------------------------------------------+---------+-----+----------+-----------+
@@ -132,26 +132,26 @@ $ safe target init -- export secret | \
   safe target proto -- import
 Now targeting proto at https://10.4.1.16:8200
 Now targeting init at http://127.0.0.1:8200
-wrote secret/(( insert_property site.name ))/proto/bosh/blobstore/director
-wrote secret/(( insert_property site.name ))/proto/bosh/db
-wrote secret/(( insert_property site.name ))/proto/bosh/vcap
-wrote secret/(( insert_property site.name ))/proto/vault/tls
-wrote secret/(( insert_property site.name ))
-wrote secret/(( insert_property site.name ))/proto/bosh/blobstore/agent
-wrote secret/(( insert_property site.name ))/proto/bosh/registry
-wrote secret/(( insert_property site.name ))/proto/bosh/users/admin
-wrote secret/(( insert_property site.name ))/proto/bosh/users/hm
-wrote secret/(( insert_property site.name ))/proto/shield/keys/core
+wrote secret/(( insert_parameter site.name ))/proto/bosh/blobstore/director
+wrote secret/(( insert_parameter site.name ))/proto/bosh/db
+wrote secret/(( insert_parameter site.name ))/proto/bosh/vcap
+wrote secret/(( insert_parameter site.name ))/proto/vault/tls
+wrote secret/(( insert_parameter site.name ))
+wrote secret/(( insert_parameter site.name ))/proto/bosh/blobstore/agent
+wrote secret/(( insert_parameter site.name ))/proto/bosh/registry
+wrote secret/(( insert_parameter site.name ))/proto/bosh/users/admin
+wrote secret/(( insert_parameter site.name ))/proto/bosh/users/hm
+wrote secret/(( insert_parameter site.name ))/proto/shield/keys/core
 wrote secret/handshake
-wrote secret/(( insert_property site.name ))/proto/bosh/nats
+wrote secret/(( insert_parameter site.name ))/proto/bosh/nats
 
 $ safe target proto -- tree
 Now targeting proto at https://10.4.1.16:8200
 .
 └── secret
     ├── handshake
-    ├── (( insert_property site.name ))
-    └── (( insert_property site.name ))/
+    ├── (( insert_parameter site.name ))
+    └── (( insert_parameter site.name ))/
         └── proto/
             ├── bosh/
             │   ├── blobstore/

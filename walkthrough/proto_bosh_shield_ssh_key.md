@@ -14,9 +14,9 @@ Let's leverage our Vault to create the SSH key pair for BOSH.
 `safe` has a handy builtin for doing this:
 
 ```
-$ safe ssh secret/(( insert_property site.name ))/proto/shield/keys/core
-$ safe get secret/(( insert_property site.name ))/proto/shield/keys/core
---- # secret/(( insert_property site.name ))/proto/shield/keys/core
+$ safe ssh secret/(( insert_parameter site.name ))/proto/shield/keys/core
+$ safe get secret/(( insert_parameter site.name ))/proto/shield/keys/core
+--- # secret/(( insert_parameter site.name ))/proto/shield/keys/core
 fingerprint: 40:9b:11:82:67:41:23:a8:c2:87:98:5d:ec:65:1d:30
 private: |
   -----BEGIN RSA PRIVATE KEY-----
@@ -37,7 +37,7 @@ Now we can put references to our Vaultified keypair in
 $ cat credentials.yml
 ---
 meta:
-  shield_public_key: (( vault "secret/(( insert_property site.name ))/proto/shield/keys/core:public" ))
+  shield_public_key: (( vault "secret/(( insert_parameter site.name ))/proto/shield/keys/core:public" ))
 ```
 
 You may want to take this opportunity to migrate

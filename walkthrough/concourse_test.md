@@ -1,8 +1,8 @@
 After it is deployed, you can do a quick test by hitting the HAProxy machine
 
 ```
-$ bosh vms (( insert_property site.name ))-proto-concourse
-Acting as user 'admin' on deployment '(( insert_property site.name ))-proto-concourse' on '(( insert_property site.name ))-proto-bosh'
+$ bosh vms (( insert_parameter site.name ))-proto-concourse
+Acting as user 'admin' on deployment '(( insert_parameter site.name ))-proto-concourse' on '(( insert_parameter site.name ))-proto-bosh'
 
 Director task 43
 
