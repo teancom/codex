@@ -1,7 +1,6 @@
 # AWS Codex Walkthrough
 
 (( insert_file overview.md ))
-
 ## Setup Credentials
 
 So you've got an AWS account right?  Cause otherwise let me interest you in
@@ -233,7 +232,6 @@ The first starts the background process that will be checking if it's time to
 begin the teardown.  The second will shutdown the background process.
 
 (( insert_file bastion_intro.md ))
-
 * In the AWS Console, go to Services > EC2.  In the dashboard each of the
 **Resources** are listed.  Find the _Running Instances_ click on it and locate
 the bastion.  The _Public IP_ is an attribute in the _Decription_ tab.
@@ -257,13 +255,9 @@ Problems connecting?  [Verify your SSH fingerprint][verify_ssh] in the
 troubleshooting doc.
 
 (( insert_file bastion_setup.md ))
-
 (( insert_file proto_intro.md ))
-
 (( insert_file vault_init.md ))
-
 (( insert_file proto_bosh_intro.md ))
-
 #### Make Manifest
 
 Let's head into the `proto/` environment directory and see if we
@@ -403,7 +397,6 @@ make: *** [manifest] Error 5
 Excellent.  We're down to two issues.
 
 (( insert_file proto_bosh_shield_ssh_key.md ))
-
 Now, we should have only a single error left when we `make
 manifest`:
 
@@ -466,9 +459,7 @@ Finally, in `static` we reserve the first usable IP (`10.4.1.4`)
 as static.  This will be assigned to our `bosh/0` director VM.
 
 (( insert_file proto_bosh_deploy.md ))
-
 (( insert_file proto_vault_intro.md ))
-
 ```
 $ cd ~/ops/vault-deployments/us-west-2/proto
 $ make manifest
@@ -592,11 +583,8 @@ zone network, meaning that only the third octet has to change from
 zone to zone (x.x.1.x for zone 1, x.x.2.x for zone 2, etc.)
 
 (( insert_file proto_vault_deploy.md ))
-
 (( insert_file proto_vault_init.md ))
-
 (( insert_file shield_intro.md ))
-
 ### Setting up AWS S3 For Backup Archives
 
 To help keep things isolated, we're going to set up a brand new
@@ -647,7 +635,6 @@ policy afterwards.
 ```
 
 (( insert_file shield_setup.md ))
-
 Next, we `make manifest` and see what we need to fill in.
 ```
 $ make manifest
@@ -705,9 +692,7 @@ networks:
 configuration.)
 
 (( insert_file shield_deploy.md ))
-
 (( insert_file bolo_intro.md ))
-
 Now let's make the manifest.
 
 ```
@@ -765,11 +750,8 @@ networks:
 ```
 
 (( insert_file bolo_test.md ))
-
 (( insert_file bolo_agents.md ))
-
 (( insert_file concourse_intro.md ))
-
 Let's make the manifest:
 
 ```
@@ -833,11 +815,8 @@ networks:
 ```
 
 (( insert_file concourse_test.md ))
-
 (( insert_file sites_and_envs_intro.md ))
-
 (( insert_file alpha_boshlite_intro.md ))
-
 Now lets try to deploy:
 
 ```
@@ -921,11 +900,8 @@ meta:
 ```
 
 (( insert_file alpha_boshlite_deploy.md ))
-
 (( insert_file alpha_cf.md ))
-
 (( insert_file beta_bosh_intro.md ))
-
 Let's try to deploy now, and see what information still needs to be resolved:
 
 ```
@@ -1007,11 +983,8 @@ EOF
 ```
 
 (( insert_file beta_bosh_deploy.md ))
-
 (( insert_file beta_jumpbox.md ))
-
 (( insert_file beta_cf_intro.md ))
-
 As you might have guessed, the next step will be to see what parameters we need to fill in:
 
 ```
@@ -1208,7 +1181,6 @@ properties:
 We have to configure `db_driver` and `db_connection_string` for diego since the templates we use is MySQL and we are using PostgreSQL here.
 
 (( insert_file beta_cf_cacert.md ))
-
 Now let's go back to the `terraform/aws` sub-directory of this repository and add to the `aws.tfvars` file the following configurations:
 
 ```
@@ -1237,7 +1209,6 @@ $ make deploy
 ```
 
 (( insert_file beta_cf_domain.md ))
-
 And let's see what's left to fill out now:
 
 ```
@@ -1505,11 +1476,8 @@ properties:
     - name: user_bosh_deployments
       rules: []
 ```
-
 (( insert_file beta_cf_scaling.md ))
-
 (( insert_file beta_cf_deploy.md ))
-
 You may encounter the following error when you are deploying Beta CF.
 
 ```
@@ -1519,5 +1487,4 @@ Unknown CPI error 'Unknown' with message 'Your quota allows for 0 more running i
 Amazon has per-region limits for different types of resources. Check what resource type your failed job is using and request to increase limits for the resource your jobs are failing at. You can log into your Amazon console, go to EC2 services, on the left column click `Limits`, you can click the blue button says `Request limit increase` on the right of each type of resource. It takes less than 30 minutes get limits increase approved through Amazon.
 
 (( insert_file beta_cf_push_app.md ))
-
 (( insert_file next_steps.md ))

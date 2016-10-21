@@ -1,4 +1,4 @@
-Another thing we may want to do is scaling the VM size to save some cost when we are deploying in non-production environment, for example, we can configure the `scaling.yml` as follows:
+Another thing we may want to do is scale the VM size to save some cost when we are deploying in non-production environment, for example, we can configure the `scaling.yml` as follows:
 
 ```
 resource_pools:
