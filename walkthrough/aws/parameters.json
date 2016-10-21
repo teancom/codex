@@ -8,5 +8,9 @@
   "site": {
     "name": "us-west-2",
     "description": "AWS Region"
+  },
+  "stemcell": {
+    "name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
+    "description": "3262.2"
   }
 }
