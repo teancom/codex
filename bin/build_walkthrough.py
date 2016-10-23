@@ -1,7 +1,12 @@
 from os import listdir
 from os.path import isfile, join
-import json, string, io
+import json, string, io, os, sys
 
+cwd = os.getcwd()
+print "Please specify the infrastructure name after the script name. \n For example: aws, google, azure, openstack, vsphere, etc. \n"
+
+infra_name = str(sys.argv[1])
+  
 def extract_keys(d,n):
     retval = {}
     if n != "":
@@ -14,12 +19,12 @@ def extract_keys(d,n):
             print "{0}{1}: {2}".format(n, k, v)
     return retval
 
-walkthroughPath = "/data/Projects/starkandwayne/codex/walkthrough"
+walkthroughPath = cwd + "/walkthrough"
 
-with io.open(walkthroughPath+"/aws/walkthrough.md", 'r', encoding="utf-8") as walkthroughFile:
+with io.open(walkthroughPath+"/" + infra_name + "/walkthrough.md", 'r', encoding="utf-8") as walkthroughFile:
     walkthroughText = walkthroughFile.read()
 
-with io.open(walkthroughPath+"/aws/parameters.json", 'r', encoding="utf-8") as walkthroughParamsFile:
+with io.open(walkthroughPath+"/"+ infra_name + "/parameters.json", 'r', encoding="utf-8") as walkthroughParamsFile:
     walkthroughParams = json.load(walkthroughParamsFile)
 print "Extracting Parameters..."
 walkthroughParams = extract_keys(walkthroughParams,'')
@@ -38,6 +43,6 @@ print "Merging in Parameters..."
 for k,v in walkthroughParams.iteritems():
     walkthroughText = string.replace(walkthroughText, "(( insert_parameter " + k + " ))", v)
 
-outputFile = io.open("/data/Projects/starkandwayne/codex/aws.md", 'w', encoding="utf-8")
+outputFile = io.open(cwd + "/" + infra_name + ".md", 'w', encoding="utf-8")
 outputFile.write(walkthroughText)
-print "\nDone!"
+print "\n File " + infra_name + ".md is generated. Well Done!"
