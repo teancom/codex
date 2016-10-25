@@ -7,6 +7,7 @@ variable "password"         { default = "supersecret"}
 variable "auth_url"         { default = ""}
 variable "key_pair"         { default = "codex"}
 variable "bastion_image"    { default = "cirros"}  # Cirros is for testing 
+variable "region"           { default = "openvdc-dc01"} 
 
 provider "openstack" {
     user_name  = "${var.user_name}"
@@ -28,7 +29,7 @@ resource "openstack_networking_secgroup_rule_v2" "icmp_traffic_ingress" {
   direction = "ingress"
   ethertype = "IPv4"
   protocol = "icmp"                    # Required if specifying port range
-  region = "RegionOne"
+  region = "${var.region}"
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -39,7 +40,7 @@ resource "openstack_networking_secgroup_rule_v2" "nat_ssh_ingress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 22
   port_range_max = 22
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -50,7 +51,7 @@ resource "openstack_networking_secgroup_rule_v2" "vpc_tcp_ingress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 1
   port_range_max = 65535
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "${var.network}.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -61,7 +62,7 @@ resource "openstack_networking_secgroup_rule_v2" "vpc_udp_ingress" {
   protocol = "udp"                    # Required if specifying port range
   port_range_min = 1
   port_range_max = 65535
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "${var.network}.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -72,7 +73,7 @@ resource "openstack_networking_secgroup_rule_v2" "tcp_egress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 1
   port_range_max = 65535
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -83,7 +84,7 @@ resource "openstack_networking_secgroup_rule_v2" "udp_egress" {
   protocol = "udp"                    # Required if specifying port range
   port_range_min = 1
   port_range_max = 65535
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -97,7 +98,7 @@ resource "openstack_networking_secgroup_rule_v2" "wide-open_ingress" {
   direction = "ingress"
   ethertype = "IPv4"
   protocol = "icmp"                   # Required if specifying port range
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.wide-open.id}"
 }
@@ -113,7 +114,7 @@ resource "openstack_networking_secgroup_rule_v2" "cf-db_ingress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 3306
   port_range_max = 3306
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.cf-db.id}"
 }
@@ -129,7 +130,7 @@ resource "openstack_networking_secgroup_rule_v2" "openvpn_ingress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 443
   port_range_max = 443
-  region = "RegionOne"
+  region = "${var.region}" 
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.openvpn.id}"
 }
@@ -327,7 +328,7 @@ output "openstack_networking_network_v2.external.dev-cf-runtime-2.subnet" {
 ###############################
 
 resource "openstack_blockstorage_volume_v2" "volume_bastion" {
-  region = "RegionOne"
+  region = "${var.region}" 
   name = "volume_bastion"
   description = "bastion Volume"
   size = 2
