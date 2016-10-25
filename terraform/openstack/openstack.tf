@@ -6,8 +6,8 @@ variable "user_name"        { default = "admin"}
 variable "password"         { default = "supersecret"}
 variable "auth_url"         { default = ""}
 variable "key_pair"         { default = "codex"}
-variable "bastion_image"    { default = "cirros"}  # Cirros is for testing 
-variable "region"           { default = "openvdc-dc01"} 
+variable "bastion_image"    { default = "ubuntu-16.06"}
+variable "region"           { default = "RegionOne"}
 
 provider "openstack" {
     user_name  = "${var.user_name}"
