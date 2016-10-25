@@ -5,6 +5,7 @@ variable "tenant_name"    { default = "codex"}
 variable "user_name"      { default = "admin"}
 variable "password"       { default = "supersecret"}
 variable "auth_url"       { default = ""}
+variable "key_pair"       { default = "codex"}
 
 
 provider "openstack" {
@@ -18,90 +19,126 @@ provider "openstack" {
 #         Security Groups
 #####################################
 
-resource "openstack_compute_secgroup_v2" "dmz" {
+resource "openstack_networking_secgroup_v2" "dmz" {
   name = "dmz"
   description = "Allow services from the private subnet through NAT"
-  # ICMP traffic control
-  rule {
-    from_port = -1
-    to_port = -1
-    ip_protocol = "icmp"
-    cidr = "0.0.0.0/0"
-  }
-  
-  # Allow SSH traffic into the NAT box
-  rule {
-    from_port = 22
-    to_port = 22
-    ip_protocol = "tcp"
-    cidr = "0.0.0.0/0"
-  }
-  
-  # Allow all traffic through the NAT from inside the VPC
-  rule {
-    from_port = 0
-    to_port = 0
-    ip_protocol = "-1"
-    cidr = "${var.network}.0.0/16"
-  }
-
-  # Allow outbound TCP traffic 
-  rule {
-    from_port = 0
-    to_port = 65535
-    ip_protocol = "tcp"
-    cidr = "0.0.0.0/0"
-  }
-  # Allow outbound UDP traffic 
-  rule {
-    from_port = 0
-    to_port = 65535
-    ip_protocol = "udp"
-    cidr = "0.0.0.0/0"
-  }
 }
 
+resource "openstack_networking_secgroup_rule_v2" "icmp_traffic_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "icmp"                    # Required if specifying port range
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
 
-resource "openstack_compute_secgroup_v2" "wide-open" {
+resource "openstack_networking_secgroup_rule_v2" "nat_ssh_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "tcp"                    # Required if specifying port range
+  port_range_min = 22
+  port_range_max = 22
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "vpc_tcp_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "tcp"                    # Required if specifying port range
+  port_range_min = 1
+  port_range_max = 65535
+  region = "RegionOne"
+  remote_ip_prefix = "${var.network}.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "vpc_udp_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "udp"                    # Required if specifying port range
+  port_range_min = 1
+  port_range_max = 65535
+  region = "RegionOne"
+  remote_ip_prefix = "${var.network}.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "tcp_egress" {
+  direction = "egress"
+  ethertype = "IPv4"
+  protocol = "tcp"                    # Required if specifying port range
+  port_range_min = 1
+  port_range_max = 65535
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "udp_egress" {
+  direction = "egress"
+  ethertype = "IPv4"
+  protocol = "udp"                    # Required if specifying port range
+  port_range_min = 1
+  port_range_max = 65535
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
+}
+
+resource "openstack_networking_secgroup_v2" "wide-open" {
   name = "wide-open"
   description = "Allow everything in and out"
-  # ICMP traffic control
-  rule {
-    from_port = -1
-    to_port = -1
-    ip_protocol = "icmp"
-    cidr = "0.0.0.0/0"
-  }
 }
 
+resource "openstack_networking_secgroup_rule_v2" "wide-open_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "icmp"                   # Required if specifying port range
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.wide-open.id}"
+}
 
-resource "openstack_compute_secgroup_v2" "cf-db" {
+resource "openstack_networking_secgroup_v2" "cf-db" {
   name = "cf-db"
   description = "Allow access to the MySQL port"
-  rule {
-    from_port = 3306
-    to_port = 3306
-    ip_protocol = "tcp"
-    cidr = "0.0.0.0/0"
-  }
 }
 
+resource "openstack_networking_secgroup_rule_v2" "cf-db_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "tcp"                    # Required if specifying port range
+  port_range_min = 3306
+  port_range_max = 3306
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.cf-db.id}"
+}
 
-resource "openstack_compute_secgroup_v2" "openvpn" {
+resource "openstack_networking_secgroup_v2" "openvpn" {
   name = "openvpn"
-  description = "Allow everything in and out"
-  # ICMP traffic control
-  rule {
-    from_port = 443
-    to_port = 443
-    ip_protocol = "tcp"
-    cidr = "0.0.0.0/0"
-  }
+  description = "Allow HTTPS in and out"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "openvpn_ingress" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  protocol = "tcp"                    # Required if specifying port range
+  port_range_min = 443
+  port_range_max = 443
+  region = "RegionOne"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.openvpn.id}"
 }
 
 ################################
-#          Networks TODO: Finish these
+#          Networks
 ###############################
+
+#FIXME: Finish these
 
 resource "openstack_networking_network_v2" "internal" {
   name = "internal"  
@@ -301,7 +338,7 @@ resource "openstack_compute_instance_v2" "bastion" {
   name = "bastion"
   image_name = "cirros-0.3.4-x86_64-uec"
   flavor_id = "3"
-  key_pair = "codex"
+  key_pair = "${var.key_pair}"
   security_groups = ["default"]
 
   network {
@@ -309,6 +346,6 @@ resource "openstack_compute_instance_v2" "bastion" {
   }
 
   volume {
-    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
+    volume_id = "${openstack_blockstorage_volume_v2.volume_bastion.id}"
   }
 }
