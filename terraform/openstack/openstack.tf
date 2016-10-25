@@ -261,7 +261,7 @@ output "openstack_networking_network_v2.external.dev-cf-edge-1.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-edge-1.id}"
 }
 
-######## DEC-CF-CORE #########
+######## DEV-CF-CORE #########
 
 resource "openstack_networking_subnet_v2" "dev-cf-core-0" {
   network_id = "${openstack_networking_network_v2.internal.id}"
@@ -291,7 +291,7 @@ output "openstack_networking_network_v2.internal.dev-cf-core-2.subnet" {
 }
 
 
-######## DEC-CF-CORE #########
+######## DEV-CF-RUNTIME #########
 
 resource "openstack_networking_subnet_v2" "dev-cf-runtime-0" {
   network_id = "${openstack_networking_network_v2.internal.id}"
@@ -327,27 +327,27 @@ output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
 #      Volumes and Instances
 ###############################
 
-resource "openstack_blockstorage_volume_v1" "volume_bastion" {
+resource "openstack_blockstorage_volume_v2" "volume_bastion" {
   region = "${var.region}" 
   name = "volume_bastion"
-  description = "bastion Volume"
+  description = "bastion volume"
   size = 2
 }
 
 
 resource "openstack_compute_instance_v2" "bastion" {
   name = "bastion"
-  image_name = "{var.bastion_image}"
+  image_name = "${var.bastion_image}"
   flavor_id = "3"
   key_pair = "${var.key_pair}"
   security_groups = ["default"]
 
   network {
-  # TODO need to be changed after we flush out network resources 
-    name = "my_network"
+    name = "internal"
+    uuid = "${openstack_networking_network_v2.internal.id}"
   }
 
   volume {
-    volume_id = "${openstack_blockstorage_volume_v1.volume_bastion.id}"
+    volume_id = "${openstack_blockstorage_volume_v2.volume_bastion.id}"
   }
 }
