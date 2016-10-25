@@ -170,7 +170,7 @@ resource "openstack_networking_subnet_v2" "global-infra-0" {
   cidr = "${var.network}.1.0/24"
 }
 
-output "openstack_networking_network_v2.external.global-infra-0.subnet" {
+output "openstack_networking_network_v2.internal.global-infra-0.subnet" {
   value = "${openstack_networking_subnet_v2.global-infra-0.id}"
 }
 
@@ -179,7 +179,7 @@ resource "openstack_networking_subnet_v2" "global-infra-1" {
   cidr = "${var.network}.2.0/24"
 }
 
-output "openstack_networking_network_v2.external.global-infra-1.subnet" {
+output "openstack_networking_network_v2.internal.global-infra-1.subnet" {
   value = "${openstack_networking_subnet_v2.global-infra-1.id}"
 }
 
@@ -188,7 +188,7 @@ resource "openstack_networking_subnet_v2" "global-infra-2" {
   cidr = "${var.network}.3.0/24"
 }
 
-output "openstack_networking_network_v2.external.global-infra-2.subnet" {
+output "openstack_networking_network_v2.internal.global-infra-2.subnet" {
   value = "${openstack_networking_subnet_v2.global-infra-2.id}"
 }
 
@@ -218,7 +218,7 @@ resource "openstack_networking_subnet_v2" "dev-infra-0" {
   cidr = "${var.network}.16.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-infra-0.subnet" {
+output "openstack_networking_network_v2.internal.dev-infra-0.subnet" {
   value = "${openstack_networking_subnet_v2.dev-infra-0.id}"
 }
 
@@ -227,7 +227,7 @@ resource "openstack_networking_subnet_v2" "dev-infra-1" {
   cidr = "${var.network}.17.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-infra-1.subnet" {
+output "openstack_networking_network_v2.internal.dev-infra-1.subnet" {
   value = "${openstack_networking_subnet_v2.dev-infra-1.id}"
 }
 
@@ -236,7 +236,7 @@ resource "openstack_networking_subnet_v2" "dev-infra-2" {
   cidr = "${var.network}.18.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-infra-2.subnet" {
+output "openstack_networking_network_v2.internal.dev-infra-2.subnet" {
   value = "${openstack_networking_subnet_v2.dev-infra-2.id}"
 }
 
@@ -268,7 +268,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-core-0" {
   cidr = "${var.network}.20.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-core-0.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-core-0.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-core-0.id}"
 }
 
@@ -277,7 +277,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-core-1" {
   cidr = "${var.network}.21.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-core-1.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-core-1.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-core-1.id}"
 }
 
@@ -286,7 +286,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-core-2" {
   cidr = "${var.network}.22.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-core-2.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-core-2.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-core-2.id}"
 }
 
@@ -298,7 +298,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-runtime-0" {
   cidr = "${var.network}.23.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-runtime-0.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-runtime-0.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-runtime-0.id}"
 }
 
@@ -308,7 +308,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-runtime-1" {
   cidr = "${var.network}.24.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-runtime-1.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-runtime-1.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-runtime-1.id}"
 }
 
@@ -317,7 +317,7 @@ resource "openstack_networking_subnet_v2" "dev-cf-runtime-2" {
   cidr = "${var.network}.25.0/24"
 }
 
-output "openstack_networking_network_v2.external.dev-cf-runtime-2.subnet" {
+output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-runtime-2.id}"
 }
 
@@ -343,6 +343,7 @@ resource "openstack_compute_instance_v2" "bastion" {
   security_groups = ["default"]
 
   network {
+  # TODO need to be changed after we flush out network resources 
     name = "my_network"
   }
 
