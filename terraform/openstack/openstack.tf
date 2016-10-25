@@ -1,12 +1,12 @@
 
-variable "network"        { default = "10.4" }      # First 2 octets of your /16
+variable "network"          { default = "10.4" }      # First 2 octets of your /16
 
-variable "tenant_name"    { default = "codex"}
-variable "user_name"      { default = "admin"}
-variable "password"       { default = "supersecret"}
-variable "auth_url"       { default = ""}
-variable "key_pair"       { default = "codex"}
-
+variable "tenant_name"      { default = "codex"}
+variable "user_name"        { default = "admin"}
+variable "password"         { default = "supersecret"}
+variable "auth_url"         { default = ""}
+variable "key_pair"         { default = "codex"}
+variable "bastion_image"    { default = "cirros"}  # Cirros is for testing 
 
 provider "openstack" {
     user_name  = "${var.user_name}"
@@ -336,7 +336,7 @@ resource "openstack_blockstorage_volume_v2" "volume_bastion" {
 
 resource "openstack_compute_instance_v2" "bastion" {
   name = "bastion"
-  image_name = "cirros-0.3.4-x86_64-uec"
+  image_name = "{var.bastion_image}"
   flavor_id = "3"
   key_pair = "${var.key_pair}"
   security_groups = ["default"]
