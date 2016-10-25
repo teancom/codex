@@ -327,7 +327,7 @@ output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
 #      Volumes and Instances
 ###############################
 
-resource "openstack_blockstorage_volume_v2" "volume_bastion" {
+resource "openstack_blockstorage_volume_v1" "volume_bastion" {
   region = "${var.region}" 
   name = "volume_bastion"
   description = "bastion Volume"
@@ -348,6 +348,6 @@ resource "openstack_compute_instance_v2" "bastion" {
   }
 
   volume {
-    volume_id = "${openstack_blockstorage_volume_v2.volume_bastion.id}"
+    volume_id = "${openstack_blockstorage_volume_v1.volume_bastion.id}"
   }
 }
