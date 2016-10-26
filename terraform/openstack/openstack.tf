@@ -9,7 +9,7 @@ variable "key_pair"         { default = "codex"}
 variable "bastion_image"    { default = "ubuntu-16.06"}
 variable "region"           { default = "RegionOne"}
 
-variable "ext_net_uuid"     { default = "09b03d93-45f8-4bea-b3b8-7ad9169f23d5"}
+variable "pub_net_uuid"     { default = ""}
 
 provider "openstack" {
     user_name  = "${var.user_name}"
@@ -43,7 +43,7 @@ resource "openstack_networking_secgroup_rule_v2" "nat_ssh_ingress" {
   protocol = "tcp"                    # Required if specifying port range
   port_range_min = 22
   port_range_max = 22
-  region = "${var.region}" 
+  region = "${var.region}"
   remote_ip_prefix = "0.0.0.0/0"
   security_group_id = "${openstack_networking_secgroup_v2.dmz.id}"
 }
@@ -141,8 +141,6 @@ resource "openstack_networking_secgroup_rule_v2" "openvpn_ingress" {
 ################################
 #          Networks
 ###############################
-
-#FIXME: Finish these
 
 resource "openstack_networking_network_v2" "internal" {
   name = "internal"  
@@ -341,52 +339,91 @@ output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
 }
 
 ###############################
-#      Routers
+#           Routers
 ###############################
 
-resource "openstack_networking_router_v2" "global-to-ext" {
-  name = "global-to-ext"
-  external_gateway = "${var.ext_net_uuid}"
+######### Global ############
+
+resource "openstack_networking_router_v2" "global-to-pub" {
+  name = "global-to-pub"
+  external_gateway = "${var.pub_net_uuid}"
 }
 
-resource "openstack_networking_router_interface_v2" "global-infra-0-to-ext" {
-  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "global-infra-0-to-pub" {
+  router_id = "${openstack_networking_router_v2.global-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.global-infra-0.id}"
 }
 
-resource "openstack_networking_router_interface_v2" "global-infra-1-to-ext" {
-  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "global-infra-1-to-pub" {
+  router_id = "${openstack_networking_router_v2.global-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.global-infra-1.id}"
 }
 
-resource "openstack_networking_router_interface_v2" "global-infra-2-to-ext" {
-  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "global-infra-2-to-pub" {
+  router_id = "${openstack_networking_router_v2.global-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.global-infra-2.id}"
 }
 
-resource "openstack_networking_router_v2" "dev-to-ext" {
-  name = "dev-to-ext"
-  external_gateway = "${var.ext_net_uuid}"
+######## Development ##########
+
+resource "openstack_networking_router_v2" "dev-to-pub" {
+  name = "dev-to-pub"
+  external_gateway = "${var.pub_net_uuid}"
 }
 
-resource "openstack_networking_router_interface_v2" "dev-infra_0-to-ext" {
-  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "dev-infra-0-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.dev-infra-0.id}"
 }
 
-resource "openstack_networking_router_interface_v2" "dev-infra_1-to-ext" {
-  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "dev-infra-1-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.dev-infra-1.id}"
 }
 
-resource "openstack_networking_router_interface_v2" "dev-infra_2-to-ext" {
-  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+resource "openstack_networking_router_interface_v2" "dev-infra-2-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
   subnet_id = "${openstack_networking_subnet_v2.dev-infra-2.id}"
 }
 
+resource "openstack_networking_router_interface_v2" "dev-cf-runtime-0-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-runtime-0.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-cf-runtime-1-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-runtime-1.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-cf-runtime-2-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-runtime-2.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-cf-core-0-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-core-0.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-cf-core-1-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-core-1.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-cf-core-2-to-pub" {
+  router_id = "${openstack_networking_router_v2.dev-to-pub.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-cf-core-2.id}"
+}
+
 ###############################
-#      Volumes and Instances
+#    Volumes and Instances
 ###############################
+
+resource "openstack_compute_floatingip_v2" "bastion_ip" {
+  pool = "public"
+  region = "${var.region}" 
+}
 
 resource "openstack_blockstorage_volume_v2" "volume_bastion" {
   region = "${var.region}" 
@@ -395,13 +432,13 @@ resource "openstack_blockstorage_volume_v2" "volume_bastion" {
   size = 2
 }
 
-
 resource "openstack_compute_instance_v2" "bastion" {
   name = "bastion"
   image_name = "${var.bastion_image}"
   flavor_id = "3"
   key_pair = "${var.key_pair}"
   security_groups = ["default"]
+  floating_ip = "${openstack_compute_floatingip_v2.bastion_ip.address}"
 
   network {
     name = "internal"
