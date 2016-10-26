@@ -166,6 +166,7 @@ output "openstack_networking_network_v2.external.dmz.subnet" {
 ######### Global ############
 
 resource "openstack_networking_subnet_v2" "global-infra-0" {
+  name = "global-infra-0"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.1.0/24"
 }
@@ -175,6 +176,7 @@ output "openstack_networking_network_v2.internal.global-infra-0.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "global-infra-1" {
+  name = "global-infra-1"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.2.0/24"
 }
@@ -184,6 +186,7 @@ output "openstack_networking_network_v2.internal.global-infra-1.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "global-infra-2" {
+  name = "global-infra-2"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.3.0/24"
 }
@@ -193,6 +196,7 @@ output "openstack_networking_network_v2.internal.global-infra-2.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "global-openvpn-0" {
+  name = "global-openvpn-0"
   network_id = "${openstack_networking_network_v2.external.id}"
   cidr = "${var.network}.4.0/25"
 }
@@ -202,6 +206,7 @@ output "openstack_networking_network_v2.external.global-openvpn-0.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "global-openvpn-1" {
+  name = "global-openvpn-1"
   network_id = "${openstack_networking_network_v2.external.id}"
   cidr = "${var.network}.4.128/25"
 }
@@ -214,6 +219,7 @@ output "openstack_networking_network_v2.external.global-openvpn-1.subnet" {
 
 
 resource "openstack_networking_subnet_v2" "dev-infra-0" {
+  name = "dev-infra-0"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.16.0/24"
 }
@@ -223,6 +229,7 @@ output "openstack_networking_network_v2.internal.dev-infra-0.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-infra-1" {
+  name = "dev-infra-1"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.17.0/24"
 }
@@ -232,6 +239,7 @@ output "openstack_networking_network_v2.internal.dev-infra-1.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-infra-2" {
+  name = "dev-infra-2"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.18.0/24"
 }
@@ -244,6 +252,7 @@ output "openstack_networking_network_v2.internal.dev-infra-2.subnet" {
 ######## DEV-CF-EDGE ##########
 
 resource "openstack_networking_subnet_v2" "dev-cf-edge-0" {
+  name = "dev-cf-edge-0"
   network_id = "${openstack_networking_network_v2.external.id}"
   cidr = "${var.network}.19.0/25"
 }
@@ -253,6 +262,7 @@ output "openstack_networking_network_v2.external.dev-cf-edge-0.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-cf-edge-1" {
+  name = "dev-cf-edge-1"
   network_id = "${openstack_networking_network_v2.external.id}"
   cidr = "${var.network}.19.128/25"
 }
@@ -264,6 +274,7 @@ output "openstack_networking_network_v2.external.dev-cf-edge-1.subnet" {
 ######## DEV-CF-CORE #########
 
 resource "openstack_networking_subnet_v2" "dev-cf-core-0" {
+  name = "dev-cf-core-0"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.20.0/24"
 }
@@ -273,6 +284,7 @@ output "openstack_networking_network_v2.internal.dev-cf-core-0.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-cf-core-1" {
+  name = "dev-cf-core-1"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.21.0/24"
 }
@@ -282,6 +294,7 @@ output "openstack_networking_network_v2.internal.dev-cf-core-1.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-cf-core-2" {
+  name = "dev-cf-core-2"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.22.0/24"
 }
@@ -294,6 +307,7 @@ output "openstack_networking_network_v2.internal.dev-cf-core-2.subnet" {
 ######## DEV-CF-RUNTIME #########
 
 resource "openstack_networking_subnet_v2" "dev-cf-runtime-0" {
+  name = "dev-cf-runtime-0"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.23.0/24"
 }
@@ -304,6 +318,7 @@ output "openstack_networking_network_v2.internal.dev-cf-runtime-0.subnet" {
 
 
 resource "openstack_networking_subnet_v2" "dev-cf-runtime-1" {
+  name = "dev-cf-runtime-1"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.24.0/24"
 }
@@ -313,6 +328,7 @@ output "openstack_networking_network_v2.internal.dev-cf-runtime-1.subnet" {
 }
 
 resource "openstack_networking_subnet_v2" "dev-cf-runtime-2" {
+  name = "dev-cf-runtime-2"
   network_id = "${openstack_networking_network_v2.internal.id}"
   cidr = "${var.network}.25.0/24"
 }
@@ -320,8 +336,6 @@ resource "openstack_networking_subnet_v2" "dev-cf-runtime-2" {
 output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-runtime-2.id}"
 }
-
-
 
 ###############################
 #      Volumes and Instances
