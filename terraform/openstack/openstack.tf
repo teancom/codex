@@ -9,12 +9,15 @@ variable "key_pair"         { default = "codex"}
 variable "bastion_image"    { default = "ubuntu-16.06"}
 variable "region"           { default = "RegionOne"}
 
+variable "ext_net_uuid"     { default = "09b03d93-45f8-4bea-b3b8-7ad9169f23d5"}
+
 provider "openstack" {
     user_name  = "${var.user_name}"
     tenant_name = "${var.tenant_name}"
     password  = "${var.password}"
     auth_url  = "${var.auth_url}"
 }
+
 
 ######################################
 #         Security Groups
@@ -335,6 +338,30 @@ resource "openstack_networking_subnet_v2" "dev-cf-runtime-2" {
 
 output "openstack_networking_network_v2.internal.dev-cf-runtime-2.subnet" {
   value = "${openstack_networking_subnet_v2.dev-cf-runtime-2.id}"
+}
+
+###############################
+#      Routers
+###############################
+
+resource "openstack_networking_router_v2" "global-to-ext" {
+  name = "global-to-ext"
+  external_gateway = "${var.ext_net_uuid}"
+}
+
+resource "openstack_networking_router_interface_v2" "global-infra-0-to-ext" {
+  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.global-infra-0.id}"
+}
+
+resource "openstack_networking_router_v2" "dev-to-ext" {
+  name = "dev-to-ext"
+  external_gateway = "${var.ext_net_uuid}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-infra_0-to-ext" {
+  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-infra-0.id}"
 }
 
 ###############################
