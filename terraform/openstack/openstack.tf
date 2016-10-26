@@ -354,6 +354,16 @@ resource "openstack_networking_router_interface_v2" "global-infra-0-to-ext" {
   subnet_id = "${openstack_networking_subnet_v2.global-infra-0.id}"
 }
 
+resource "openstack_networking_router_interface_v2" "global-infra-1-to-ext" {
+  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.global-infra-1.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "global-infra-2-to-ext" {
+  router_id = "${openstack_networking_router_v2.global-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.global-infra-2.id}"
+}
+
 resource "openstack_networking_router_v2" "dev-to-ext" {
   name = "dev-to-ext"
   external_gateway = "${var.ext_net_uuid}"
@@ -362,6 +372,16 @@ resource "openstack_networking_router_v2" "dev-to-ext" {
 resource "openstack_networking_router_interface_v2" "dev-infra_0-to-ext" {
   router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
   subnet_id = "${openstack_networking_subnet_v2.dev-infra-0.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-infra_1-to-ext" {
+  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-infra-1.id}"
+}
+
+resource "openstack_networking_router_interface_v2" "dev-infra_2-to-ext" {
+  router_id = "${openstack_networking_router_v2.dev-to-ext.id}"
+  subnet_id = "${openstack_networking_subnet_v2.dev-infra-2.id}"
 }
 
 ###############################
