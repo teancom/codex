@@ -7,6 +7,7 @@ variable "password"         { default = "supersecret"}
 variable "auth_url"         { default = ""}
 variable "key_pair"         { default = "codex"}
 variable "bastion_image"    { default = "ubuntu-16.06"}
+variable "bastion_name"     { default = "bastion"}
 variable "region"           { default = "RegionOne"}
 
 variable "pub_net_uuid"     { default = ""}
@@ -433,12 +434,19 @@ resource "openstack_blockstorage_volume_v2" "volume_bastion" {
 }
 
 resource "openstack_compute_instance_v2" "bastion" {
-  name = "bastion"
+  name = "${var.bastion_name}"
   image_name = "${var.bastion_image}"
   flavor_id = "3"
   key_pair = "${var.key_pair}"
   security_groups = ["default"]
   floating_ip = "${openstack_compute_floatingip_v2.bastion_ip.address}"
+
+  config_drive = true
+  user_data = <<EOF
+#!/bin/bash
+
+sed -i '1s/127.0.0.1 localhost/127.0.0.1 localhost ${var.bastion_name}/' /etc/hosts
+EOF
 
   network {
     name = "internal"
